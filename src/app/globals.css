@@ -12,15 +12,52 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  /* Ensure hover panels are visible above other nodes */
+}
+
+.react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+/* Animate-in utility for hover panels */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-top-1 {
+  from {
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.2s ease-out, slide-in-from-top-1 0.2s ease-out;
+}
+
+/* Ensure detail panels are above minimap and controls */
+.react-flow__node .details-popover,
+.react-flow__node > div > .absolute {
+  z-index: 1000;
 }

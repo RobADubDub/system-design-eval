@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.30",
+    "@ai-sdk/react": "^3.0.63",
+    "@xyflow/react": "^12.10.0",
+    "ai": "^6.0.61",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
