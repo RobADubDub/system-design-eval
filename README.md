@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# System Design Eval
 
-## Getting Started
+An interactive tool for practicing system design interviews. Build architecture diagrams, take structured notes, and get AI-powered feedback on your designs.
 
-First, run the development server:
+## Features
+
+- **Interactive Diagram Canvas** - Drag-and-drop cloud architecture components (databases, services, load balancers, queues, CDNs, etc.)
+- **Structured Notes Panel** - Organized sections for requirements, API design, data model, scaling considerations, and more
+- **AI Design Assistant** - Ask questions about your architecture and get structured insights
+- **Flow Simulator** - Visualize request flows through your system with AI-generated step-by-step animations
+- **AI Hints & Validation** - Get progressive hints and validate your notes against best practices
+- **Model Selection** - Choose between Claude Haiku 4.5, Sonnet 4.5, or Opus 4.5
+- **Save/Load Diagrams** - Persist your work as JSON files
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+
+- An Anthropic API key
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+ANTHROPIC_API_KEY=your_api_key_here
+```
+
+You can get an API key from [console.anthropic.com](https://console.anthropic.com/).
+
+### Installation
+
+```bash
+npm install
+```
+
+### Running the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Define the Problem** - Start by writing a problem statement in the Notes panel (or use a template)
+2. **Build Your Diagram** - Drag components from the palette onto the canvas and connect them
+3. **Take Notes** - Fill in the structured sections: requirements, API design, data model, etc.
+4. **Get Feedback** - Use the AI Assistant to analyze your design or get hints on specific sections
+5. **Simulate Flows** - Test your architecture by simulating user scenarios
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js 16
+- React Flow for the diagram canvas
+- Vercel AI SDK with Anthropic
+- Tailwind CSS
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

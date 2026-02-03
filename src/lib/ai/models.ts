@@ -2,8 +2,8 @@
 export type Provider = 'anthropic' | 'openai' | 'local';
 
 export interface ModelConfig {
-  id: string;           // e.g., 'claude-sonnet-4-20250514'
-  name: string;         // e.g., 'Claude Sonnet 4'
+  id: string;           // e.g., 'claude-haiku-4-5-20251001'
+  name: string;         // e.g., 'Claude Haiku 4.5'
   provider: Provider;
   description: string;
   maxTokens: number;
