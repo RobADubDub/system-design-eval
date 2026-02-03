@@ -7,6 +7,7 @@ import {
   serializeSelectedNode,
   serializeNotesForAI,
 } from '@/lib/ai/diagramSerializer';
+import { useSettings } from '@/components/settings/SettingsContext';
 
 interface Insight {
   nodeId: string | null;
@@ -47,6 +48,7 @@ export function AIChatPanel({
   onClose,
   onFocusNode,
 }: AIChatPanelProps) {
+  const { settings } = useSettings();
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -105,6 +107,7 @@ export function AIChatPanel({
           diagramContext,
           selectedNodeContext: selectedNodesContext,
           notesContext,
+          model: settings.selectedModel,
         }),
         signal: abortControllerRef.current.signal,
       });

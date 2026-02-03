@@ -1,7 +1,8 @@
 import { generateObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { logLLMRequest, logLLMResponse } from '@/lib/llmLogger';
+import { getModel } from '@/lib/ai/provider';
+import { DEFAULT_MODEL } from '@/lib/ai/models';
 
 // Schema for validation response
 const ValidationResultSchema = z.object({
@@ -73,7 +74,8 @@ Keep each level to 3-5 bullet points or categories. Make them cohesive - level 2
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mode } = body;
+    const { mode, model } = body;
+    const modelId = model || DEFAULT_MODEL;
 
     if (mode === 'validate') {
       const { problemStatement, sectionId, sectionTitle, userContent } = body;
@@ -97,7 +99,7 @@ export async function POST(req: Request) {
       });
 
       const { object } = await generateObject({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         prompt,
         schema: ValidationResultSchema,
         maxOutputTokens: 1024,
@@ -137,7 +139,7 @@ export async function POST(req: Request) {
       });
 
       const { object } = await generateObject({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         prompt,
         schema: HintResultSchema,
         maxOutputTokens: 2048,
@@ -185,7 +187,7 @@ Keep each scenario concise (3-6 words) and action-oriented.`;
       });
 
       const { object } = await generateObject({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         prompt,
         schema: ScenarioSuggestionsSchema,
         maxOutputTokens: 512,

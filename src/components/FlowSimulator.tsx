@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useFlowSimulation, SimulationStatus } from '@/hooks/useFlowSimulation';
 import { CloudNode, DiagramEdge, DiagramNotes } from '@/types/diagram';
+import { useSettings } from '@/components/settings/SettingsContext';
 
 interface FlowSimulatorProps {
   nodes: CloudNode[];
@@ -21,6 +22,7 @@ export function FlowSimulator({
   onActiveEdgeChange,
   onClose,
 }: FlowSimulatorProps) {
+  const { settings } = useSettings();
   const [scenarioInput, setScenarioInput] = useState('');
   const [clarificationInput, setClarificationInput] = useState('');
   const [suggestedScenarios, setSuggestedScenarios] = useState<string[]>([]);
@@ -37,6 +39,7 @@ export function FlowSimulator({
     notes,
     onActiveNodeChange,
     onActiveEdgeChange,
+    model: settings.selectedModel,
   });
 
   // Generate scenario suggestions from problem statement
@@ -51,6 +54,7 @@ export function FlowSimulator({
         body: JSON.stringify({
           mode: 'scenarios',
           problemStatement,
+          model: settings.selectedModel,
         }),
       });
 

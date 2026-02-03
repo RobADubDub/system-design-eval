@@ -1,11 +1,12 @@
 import { streamObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import {
   STRUCTURED_CHAT_PROMPT,
   buildChatContext,
 } from '@/lib/ai/prompts';
 import { logLLMRequest, logLLMResponse } from '@/lib/llmLogger';
+import { getModel } from '@/lib/ai/provider';
+import { DEFAULT_MODEL } from '@/lib/ai/models';
 
 // Schema for structured chat responses - every response is tabular
 const ChatResponseSchema = z.object({
@@ -19,7 +20,8 @@ const ChatResponseSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { messages, diagramContext, selectedNodeContext, notesContext } = await req.json();
+    const { messages, diagramContext, selectedNodeContext, notesContext, model } = await req.json();
+    const modelId = model || DEFAULT_MODEL;
 
     // Build the full context for the AI
     const context = buildChatContext(diagramContext, selectedNodeContext, notesContext);
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
     });
 
     const result = streamObject({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: getModel(modelId),
       system: systemMessage,
       prompt: prompt,
       schema: ChatResponseSchema,

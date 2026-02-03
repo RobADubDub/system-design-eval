@@ -13,6 +13,7 @@ import { DiagramNotes } from '@/types/diagram';
 
 interface UseNotesAssistOptions {
   notes: DiagramNotes;
+  model?: string;
 }
 
 interface UseNotesAssistReturn {
@@ -27,7 +28,7 @@ interface UseNotesAssistReturn {
   canUseAssist: () => boolean;
 }
 
-export function useNotesAssist({ notes }: UseNotesAssistOptions): UseNotesAssistReturn {
+export function useNotesAssist({ notes, model }: UseNotesAssistOptions): UseNotesAssistReturn {
   const [assistState, setAssistState] = useState<NotesAssistState>(() => ({
     sections: notes.sections.map(s => createDefaultSectionAssistState(s.id)),
   }));
@@ -89,6 +90,7 @@ export function useNotesAssist({ notes }: UseNotesAssistOptions): UseNotesAssist
             sectionId,
             sectionTitle,
             userContent,
+            model,
           }),
         });
 
@@ -110,7 +112,7 @@ export function useNotesAssist({ notes }: UseNotesAssistOptions): UseNotesAssist
         updateSectionAssist(sectionId, { isLoading: false });
       }
     },
-    [notes.sections, getProblemStatement, updateSectionAssist]
+    [notes.sections, getProblemStatement, updateSectionAssist, model]
   );
 
   // Get hints for a section - fetches all levels at once, reveals progressively
@@ -155,6 +157,7 @@ export function useNotesAssist({ notes }: UseNotesAssistOptions): UseNotesAssist
             sectionId,
             sectionTitle,
             userContent,
+            model,
           }),
         });
 
@@ -181,7 +184,7 @@ export function useNotesAssist({ notes }: UseNotesAssistOptions): UseNotesAssist
         updateSectionAssist(sectionId, { isLoading: false });
       }
     },
-    [notes.sections, getProblemStatement, updateSectionAssist, assistState.sections]
+    [notes.sections, getProblemStatement, updateSectionAssist, assistState.sections, model]
   );
 
   // Clear assist state for a section

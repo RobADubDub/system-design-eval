@@ -45,7 +45,8 @@ export async function generateFlowSteps(
   nodes: CloudNode[],
   edges: DiagramEdge[],
   scenario: string,
-  notes?: DiagramNotes
+  notes?: DiagramNotes,
+  model?: string
 ): Promise<FlowGenerationResult> {
   try {
     const flowDiagramContext = serializeDiagramForFlow(nodes, edges);
@@ -59,6 +60,7 @@ export async function generateFlowSteps(
         flowDiagramContext,
         scenario,
         notesContext,
+        model,
       }),
     });
 
@@ -144,9 +146,10 @@ export async function continueFlowGeneration(
   edges: DiagramEdge[],
   originalScenario: string,
   clarification: string,
-  notes?: DiagramNotes
+  notes?: DiagramNotes,
+  model?: string
 ): Promise<FlowGenerationResult> {
   // Combine original scenario with clarification
   const enhancedScenario = `${originalScenario}. Additional context: ${clarification}`;
-  return generateFlowSteps(nodes, edges, enhancedScenario, notes);
+  return generateFlowSteps(nodes, edges, enhancedScenario, notes, model);
 }

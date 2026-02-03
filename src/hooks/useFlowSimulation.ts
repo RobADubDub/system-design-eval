@@ -13,6 +13,7 @@ interface UseFlowSimulationOptions {
   onActiveNodeChange?: (nodeId: string | null) => void;
   onActiveEdgeChange?: (edgeId: string | null) => void;
   baseDelay?: number; // Base delay between steps in ms (default: 2000)
+  model?: string;
 }
 
 interface UseFlowSimulationReturn {
@@ -50,6 +51,7 @@ export function useFlowSimulation({
   onActiveNodeChange,
   onActiveEdgeChange,
   baseDelay = 2000,
+  model,
 }: UseFlowSimulationOptions): UseFlowSimulationReturn {
   const [status, setStatus] = useState<SimulationStatus>('idle');
   const [steps, setSteps] = useState<FlowStep[]>([]);
@@ -120,7 +122,7 @@ export function useFlowSimulation({
     setSteps([]);
     setCurrentStepIndex(-1);
 
-    const result = await generateFlowSteps(nodes, edges, newScenario, notes);
+    const result = await generateFlowSteps(nodes, edges, newScenario, notes, model);
 
     if (!result.success) {
       setError(result.error || 'Failed to generate flow');
@@ -142,7 +144,7 @@ export function useFlowSimulation({
       setError('No steps generated');
       setStatus('idle');
     }
-  }, [nodes, edges, notes]);
+  }, [nodes, edges, notes, model]);
 
   // Answer clarification question
   const answerClarification = useCallback(async (answer: string) => {
@@ -151,7 +153,7 @@ export function useFlowSimulation({
     setStatus('generating');
     setClarificationQuestion(null);
 
-    const result = await continueFlowGeneration(nodes, edges, scenario, answer, notes);
+    const result = await continueFlowGeneration(nodes, edges, scenario, answer, notes, model);
 
     if (!result.success) {
       setError(result.error || 'Failed to generate flow');
@@ -173,7 +175,7 @@ export function useFlowSimulation({
       setError('No steps generated');
       setStatus('idle');
     }
-  }, [nodes, edges, scenario, clarificationQuestion, notes]);
+  }, [nodes, edges, scenario, clarificationQuestion, notes, model]);
 
   // Playback controls
   const play = useCallback(() => {

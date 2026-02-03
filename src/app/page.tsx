@@ -11,6 +11,8 @@ import { CloudNode, DiagramEdge, CloudNodeData, DiagramState, DiagramNotes, Node
 import { ProblemTemplate } from '@/types/notesAssist';
 import { useDiagramPersistence } from '@/hooks/useDiagramPersistence';
 import { useNotesAssist } from '@/hooks/useNotesAssist';
+import { SettingsProvider, useSettings } from '@/components/settings/SettingsContext';
+import { ModelSelector } from '@/components/settings/ModelSelector';
 
 type RightPanelMode = 'none' | 'properties' | 'ai' | 'flow';
 
@@ -22,7 +24,8 @@ const MAX_LEFT_PANEL_WIDTH = 400;
 const DEFAULT_LEFT_PANEL_WIDTH = 224; // 14rem = 224px
 const MAX_HISTORY = 50;
 
-export default function Home() {
+function HomeContent() {
+  const { settings } = useSettings();
   // Node ID counter
   const nodeIdCounter = useRef(
     Math.max(...initialNodes.map((n) => parseInt(n.id, 10)), 0) + 1
@@ -179,7 +182,7 @@ export default function Home() {
   }, []);
 
   // AI Assist hook for notes
-  const notesAssist = useNotesAssist({ notes });
+  const notesAssist = useNotesAssist({ notes, model: settings.selectedModel });
 
   // Handler for selecting a problem template
   const handleSelectTemplate = useCallback((template: ProblemTemplate) => {
@@ -495,6 +498,8 @@ export default function Home() {
               onChange={(e) => persistence.setDiagramName(e.target.value)}
               className="text-lg font-semibold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 -ml-1"
             />
+            <div className="w-px h-6 bg-gray-200" />
+            <ModelSelector />
           </div>
           <div className="flex items-center gap-2">
             {/* File actions */}
@@ -723,5 +728,13 @@ export default function Home() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <SettingsProvider>
+      <HomeContent />
+    </SettingsProvider>
   );
 }

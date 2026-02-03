@@ -1,5 +1,4 @@
 import { streamText, generateText, streamObject } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import {
   ANALYSIS_PROMPT,
@@ -9,6 +8,8 @@ import {
   buildFlowContext,
 } from '@/lib/ai/prompts';
 import { logLLMRequest, logLLMResponse } from '@/lib/llmLogger';
+import { getModel } from '@/lib/ai/provider';
+import { DEFAULT_MODEL } from '@/lib/ai/models';
 
 // Schema for structured analysis findings
 const AnalysisFindingSchema = z.object({
@@ -25,7 +26,8 @@ const AnalysisResultSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { mode, diagramContext, flowDiagramContext, scenario, notesContext } = await req.json();
+    const { mode, diagramContext, flowDiagramContext, scenario, notesContext, model } = await req.json();
+    const modelId = model || DEFAULT_MODEL;
 
     if (mode === 'analyze') {
       // Full system analysis with streaming
@@ -38,7 +40,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         system: ANALYSIS_PROMPT,
         messages: [{ role: 'user', content: context }],
         maxOutputTokens: 4096,
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
       });
 
       const result = streamObject({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         system: STRUCTURED_ANALYSIS_PROMPT,
         prompt: context,
         schema: AnalysisResultSchema,
@@ -94,7 +96,7 @@ export async function POST(req: Request) {
       });
 
       const result = await generateText({
-        model: anthropic('claude-sonnet-4-20250514'),
+        model: getModel(modelId),
         system: FLOW_GENERATION_PROMPT,
         messages: [{ role: 'user', content: context }],
         maxOutputTokens: 2048,
