@@ -36,6 +36,7 @@ import {
   SchedulerNode,
   ApiGatewayNode,
 } from './nodes';
+import { EditingProvider, useEditing } from './nodes/EditingContext';
 import { CloudNodeType, CloudNodeData, CloudNode, DiagramEdge, NODE_DIMENSIONS, NodeSpecification } from '@/types/diagram';
 import { ContextMenu, ContextMenuProps } from './ContextMenu';
 import { SpecificationsLayer } from './specifications';
@@ -189,6 +190,7 @@ function DiagramCanvasInner({
   const { screenToFlowPosition, deleteElements, setCenter, getZoom } = useReactFlow();
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const isDragging = useRef(false);
+  const { triggerEdit } = useEditing();
 
   // Scroll detection for specification line visibility
   const [isScrolling, setIsScrolling] = useState(false);
@@ -323,13 +325,13 @@ function DiagramCanvasInner({
         handleDuplicate();
       }
 
-      // Enter - edit label of selected node (same as double-click)
+      // Enter - trigger inline label editing for selected node
       if (event.key === 'Enter' && selectedNodes.length === 1) {
         event.preventDefault();
-        onNodeDoubleClick?.(selectedNodes[0].id);
+        triggerEdit(selectedNodes[0].id);
       }
     },
-    [handleDelete, handleDuplicate, selectedNodes, onNodeDoubleClick]
+    [handleDelete, handleDuplicate, selectedNodes, triggerEdit]
   );
 
   // Context menu handlers
@@ -522,11 +524,13 @@ function DiagramCanvasInner({
 // Export types and defaults for external use
 export { nodeTypes, defaultNodeData, initialNodes, initialEdges };
 
-// Wrapper component that provides ReactFlowProvider context
+// Wrapper component that provides ReactFlowProvider and EditingProvider context
 export function DiagramCanvas(props: DiagramCanvasProps) {
   return (
     <ReactFlowProvider>
-      <DiagramCanvasInner {...props} />
+      <EditingProvider>
+        <DiagramCanvasInner {...props} />
+      </EditingProvider>
     </ReactFlowProvider>
   );
 }

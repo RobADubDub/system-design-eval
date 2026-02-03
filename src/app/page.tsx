@@ -110,11 +110,17 @@ export default function Home() {
         e.preventDefault();
         redo();
       }
+
+      // Ctrl+A or Cmd+A for select all nodes
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        setNodes((nds) => nds.map((node) => ({ ...node, selected: true })));
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, setNodes]);
 
   // Selection state
   const [selectedNodes, setSelectedNodes] = useState<CloudNode[]>([]);
@@ -342,11 +348,12 @@ export default function Home() {
   const handleNodeDoubleClick = useCallback((nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
-      // Select the node and show properties
+      // Deselect all nodes and select only the double-clicked one
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === nodeId })));
       setSelectedNodes([node]);
       setRightPanel('properties');
     }
-  }, [nodes]);
+  }, [nodes, setNodes]);
 
   // Handle Ask AI from context menu
   const handleAskAI = useCallback((nodeId: string) => {

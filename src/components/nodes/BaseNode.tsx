@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, ReactNode, KeyboardEvent } from 'react';
 import { Handle, Position, useReactFlow } from '@xyflow/react';
+import { useEditing } from './EditingContext';
 
 interface BaseNodeProps {
   id: string;
@@ -31,8 +32,9 @@ export function BaseNode({
   const [editValue, setEditValue] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
   const { setNodes } = useReactFlow();
+  const { editingNodeId, clearEditing } = useEditing();
 
-  const showDetails = (isHovered || selected) && !isEditing;
+  const showDetails = isHovered && !isEditing;
   const hasDetails = description || notes || children;
 
   // Focus input when editing starts
@@ -49,6 +51,14 @@ export function BaseNode({
       setEditValue(label);
     }
   }, [label, isEditing]);
+
+  // Trigger inline editing from context (Enter key)
+  useEffect(() => {
+    if (editingNodeId === id && !isEditing) {
+      setIsEditing(true);
+      clearEditing();
+    }
+  }, [editingNodeId, id, isEditing, clearEditing]);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
