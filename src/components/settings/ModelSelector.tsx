@@ -18,22 +18,26 @@ export function ModelSelector() {
 
   const currentModel = getModelConfig(settings.selectedModel);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (capture phase to catch canvas clicks)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        !dropdownRef.current?.contains(target) &&
+        !buttonRef.current?.contains(target)
       ) {
         setIsOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    // Use capture phase to intercept before React Flow handles the event
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [isOpen]);
 
   // Close dropdown on escape
   useEffect(() => {
@@ -143,11 +147,6 @@ export function ModelSelector() {
             ))}
           </div>
 
-          <div className="p-2 border-t border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-400 text-center">
-              Model applies to chat, analysis, and notes assist
-            </p>
-          </div>
         </div>
       )}
     </div>
