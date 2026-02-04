@@ -1,7 +1,220 @@
-import { SavedDiagram, DiagramState, DiagramNotes } from '@/types/diagram';
-import { NotesAssistState } from '@/types/notesAssist';
+import { SavedDiagram, DiagramState, DiagramNotes, SpecItem, NodeSpecification, DEFAULT_NOTES_SECTIONS, generateSpecItemId } from '@/types/diagram';
+import { NotesAssistState, SectionAssistState, createDefaultSectionAssistState } from '@/types/notesAssist';
 
-const CURRENT_VERSION = '2.0';
+const CURRENT_VERSION = '2.1';
+
+// ============================================
+// Serialization: Strip default/empty values
+// ============================================
+
+// Serialized spec item (no runtime ID)
+interface SerializedSpecItem {
+  text: string;
+  children?: SerializedSpecItem[];
+}
+
+/**
+ * Check if section assist state is default (no hints, no validation)
+ */
+function isDefaultSectionAssistState(state: SectionAssistState): boolean {
+  return (
+    state.currentHintLevel === null &&
+    state.hints.length === 0 &&
+    state.validationResult === null &&
+    state.isLoading === false
+  );
+}
+
+/**
+ * Clean spec items: strip runtime IDs, remove empty children arrays
+ */
+function cleanSpecItems(items: SpecItem[]): SerializedSpecItem[] {
+  return items.map(item => {
+    const cleaned: SerializedSpecItem = { text: item.text };
+    if (item.children.length > 0) {
+      cleaned.children = cleanSpecItems(item.children);
+    }
+    return cleaned;
+  });
+}
+
+/**
+ * Check if a specification has meaningful content
+ */
+function hasSpecContent(spec: NodeSpecification): boolean {
+  const hasText = spec.items.some(item =>
+    item.text.trim() !== '' ||
+    (item.children && item.children.some(c => c.text.trim() !== ''))
+  );
+  return hasText;
+}
+
+/**
+ * Clean specifications: only keep those with content, strip runtime IDs
+ */
+function cleanSpecifications(specs: NodeSpecification[] | undefined): SerializedNodeSpecification[] | undefined {
+  if (!specs || specs.length === 0) return undefined;
+
+  const cleaned = specs
+    .filter(hasSpecContent)
+    .map(spec => ({
+      nodeId: spec.nodeId,
+      items: cleanSpecItems(spec.items),
+      offsetX: spec.offsetX,
+      offsetY: spec.offsetY,
+      collapsed: spec.collapsed,
+    }));
+
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+/**
+ * Clean notes assist state: only keep sections with non-default state
+ */
+function cleanNotesAssistState(state: NotesAssistState | undefined): NotesAssistState | undefined {
+  if (!state) return undefined;
+
+  const nonDefaultSections = state.sections.filter(s => !isDefaultSectionAssistState(s));
+
+  if (nonDefaultSections.length === 0) return undefined;
+
+  return { sections: nonDefaultSections };
+}
+
+/**
+ * Clean notes sections: only keep sections with content different from default
+ */
+function cleanNotesSections(notes: DiagramNotes | undefined): DiagramNotes | undefined {
+  if (!notes) return undefined;
+
+  const sectionsWithContent = notes.sections.filter(section => {
+    const defaultSection = DEFAULT_NOTES_SECTIONS.find(d => d.id === section.id);
+    // Keep if content differs from default (or no default exists)
+    return section.content.trim() !== '' &&
+           (!defaultSection || section.content !== defaultSection.content);
+  });
+
+  if (sectionsWithContent.length === 0) return undefined;
+
+  return { sections: sectionsWithContent };
+}
+
+/**
+ * Clean diagram state for serialization
+ */
+function cleanDiagramState(state: DiagramState): SerializedDiagramState {
+  return {
+    nodes: state.nodes,
+    edges: state.edges,
+    specifications: cleanSpecifications(state.specifications),
+  };
+}
+
+/**
+ * Prepare diagram for serialization (strip defaults and runtime IDs)
+ */
+function cleanDiagramForSave(diagram: SavedDiagram): SerializedSavedDiagram {
+  const cleaned: SerializedSavedDiagram = {
+    version: diagram.version,
+    name: diagram.name,
+    createdAt: diagram.createdAt,
+    updatedAt: diagram.updatedAt,
+    state: cleanDiagramState(diagram.state),
+  };
+
+  const cleanedNotes = cleanNotesSections(diagram.notes);
+  if (cleanedNotes) {
+    cleaned.notes = cleanedNotes;
+  }
+
+  const cleanedNotesAssist = cleanNotesAssistState(diagram.notesAssist);
+  if (cleanedNotesAssist) {
+    cleaned.notesAssist = cleanedNotesAssist;
+  }
+
+  return cleaned;
+}
+
+// ============================================
+// Deserialization: Restore defaults
+// ============================================
+
+/**
+ * Restore spec items: regenerate runtime IDs, ensure children arrays exist
+ */
+function restoreSpecItems(items: SerializedSpecItem[]): SpecItem[] {
+  return items.map(item => ({
+    id: generateSpecItemId(),
+    text: item.text,
+    children: item.children ? restoreSpecItems(item.children) : [],
+  }));
+}
+
+// Serialized specification (with SerializedSpecItem, no runtime IDs)
+interface SerializedNodeSpecification {
+  nodeId: string;
+  items: SerializedSpecItem[];
+  offsetX: number;
+  offsetY: number;
+  collapsed: boolean;
+}
+
+// Serialized diagram state (for persistence)
+interface SerializedDiagramState {
+  nodes: DiagramState['nodes'];
+  edges: DiagramState['edges'];
+  specifications?: SerializedNodeSpecification[];
+}
+
+// Serialized saved diagram (the actual file format)
+interface SerializedSavedDiagram {
+  version: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  state: SerializedDiagramState;
+  notes?: DiagramNotes;
+  notesAssist?: NotesAssistState;
+}
+
+/**
+ * Restore specifications: regenerate IDs, ensure children arrays
+ */
+function restoreSpecifications(specs: SerializedNodeSpecification[] | undefined): NodeSpecification[] | undefined {
+  if (!specs) return undefined;
+  return specs.map(spec => ({
+    ...spec,
+    items: restoreSpecItems(spec.items),
+  }));
+}
+
+/**
+ * Restore notes assist state with defaults for missing sections
+ */
+function restoreNotesAssistState(
+  state: NotesAssistState | undefined,
+  sectionIds: string[]
+): NotesAssistState {
+  const existingSections = state?.sections ?? [];
+
+  return {
+    sections: sectionIds.map(id => {
+      const existing = existingSections.find(s => s.sectionId === id);
+      return existing ?? createDefaultSectionAssistState(id);
+    }),
+  };
+}
+
+/**
+ * Restore diagram state: regenerate runtime IDs, restore defaults
+ */
+function restoreDiagramState(state: SerializedDiagramState): DiagramState {
+  return {
+    nodes: state.nodes,
+    edges: state.edges,
+    specifications: restoreSpecifications(state.specifications),
+  };
+}
 
 /**
  * Create a new saved diagram object
@@ -45,14 +258,15 @@ export function updateSavedDiagram(
 }
 
 /**
- * Serialize diagram to JSON string
+ * Serialize diagram to JSON string (strips default values)
  */
 export function serializeDiagram(diagram: SavedDiagram): string {
-  return JSON.stringify(diagram, null, 2);
+  const cleaned = cleanDiagramForSave(diagram);
+  return JSON.stringify(cleaned, null, 2);
 }
 
 /**
- * Parse JSON string to diagram
+ * Parse JSON string to diagram (restores default values)
  */
 export function parseDiagram(json: string): SavedDiagram {
   const parsed = JSON.parse(json);
@@ -66,7 +280,16 @@ export function parseDiagram(json: string): SavedDiagram {
     throw new Error('Invalid diagram file: missing nodes or edges');
   }
 
-  return parsed as SavedDiagram;
+  // Restore defaults for optional/nested fields
+  const sectionIds = DEFAULT_NOTES_SECTIONS.map(s => s.id);
+
+  const restored: SavedDiagram = {
+    ...parsed,
+    state: restoreDiagramState(parsed.state),
+    notesAssist: restoreNotesAssistState(parsed.notesAssist, sectionIds),
+  };
+
+  return restored;
 }
 
 /**
