@@ -1,10 +1,85 @@
-import { SavedDiagram, DiagramState, DiagramNotes, SpecItem, NodeSpecification, DEFAULT_NOTES_SECTIONS, generateSpecItemId } from '@/types/diagram';
+import { SavedDiagram, DiagramState, DiagramNotes, SpecItem, NodeSpecification, DEFAULT_NOTES_SECTIONS, generateSpecItemId, CloudNode, DiagramEdge } from '@/types/diagram';
 
 const CURRENT_VERSION = '2.1';
 
 // ============================================
 // Serialization: Strip default/empty values
 // ============================================
+
+// React Flow runtime properties to strip from nodes
+const NODE_RUNTIME_KEYS = ['selected', 'dragging', 'measured', 'resizing', 'initialized'] as const;
+
+// Node data runtime properties to strip
+const NODE_DATA_RUNTIME_KEYS = ['isActive'] as const;
+
+// Node data properties that are empty/default and can be omitted
+const NODE_DATA_DEFAULT_EMPTY = ['notes', 'description'] as const;
+
+// Edge properties to keep (everything else is runtime/default)
+const EDGE_ESSENTIAL_KEYS = ['id', 'source', 'target', 'sourceHandle', 'targetHandle', 'data'] as const;
+
+/**
+ * Clean node data: remove runtime state and empty default fields
+ */
+function cleanNodeData(data: CloudNode['data']): CloudNode['data'] {
+  const cleaned = { ...data };
+
+  // Remove runtime properties
+  for (const key of NODE_DATA_RUNTIME_KEYS) {
+    delete (cleaned as Record<string, unknown>)[key];
+  }
+
+  // Remove empty default properties
+  for (const key of NODE_DATA_DEFAULT_EMPTY) {
+    if ((cleaned as Record<string, unknown>)[key] === '' ||
+        (cleaned as Record<string, unknown>)[key] === undefined) {
+      delete (cleaned as Record<string, unknown>)[key];
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Clean a single node: strip React Flow runtime state
+ */
+function cleanNode(node: CloudNode): CloudNode {
+  const cleaned = { ...node };
+
+  // Remove React Flow runtime properties
+  for (const key of NODE_RUNTIME_KEYS) {
+    delete (cleaned as Record<string, unknown>)[key];
+  }
+
+  // Clean node data
+  cleaned.data = cleanNodeData(node.data);
+
+  return cleaned;
+}
+
+/**
+ * Clean a single edge: keep only essential properties
+ */
+function cleanEdge(edge: DiagramEdge): DiagramEdge {
+  const cleaned: Partial<DiagramEdge> = {};
+
+  // Only keep essential properties
+  for (const key of EDGE_ESSENTIAL_KEYS) {
+    if (key in edge && edge[key as keyof DiagramEdge] !== undefined) {
+      (cleaned as Record<string, unknown>)[key] = edge[key as keyof DiagramEdge];
+    }
+  }
+
+  // Only include data if it has meaningful content
+  if (cleaned.data) {
+    const hasContent = Object.values(cleaned.data).some(v => v !== undefined && v !== '');
+    if (!hasContent) {
+      delete cleaned.data;
+    }
+  }
+
+  return cleaned as DiagramEdge;
+}
 
 // Serialized spec item (no runtime ID)
 interface SerializedSpecItem {
@@ -78,8 +153,8 @@ function cleanNotesSections(notes: DiagramNotes | undefined): DiagramNotes | und
  */
 function cleanDiagramState(state: DiagramState): SerializedDiagramState {
   return {
-    nodes: state.nodes,
-    edges: state.edges,
+    nodes: state.nodes.map(cleanNode),
+    edges: state.edges.map(cleanEdge),
     specifications: cleanSpecifications(state.specifications),
   };
 }
