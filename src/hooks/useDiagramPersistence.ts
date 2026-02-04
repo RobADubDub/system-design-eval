@@ -32,6 +32,7 @@ interface UseDiagramPersistenceOptions {
   setNotesAssist?: React.Dispatch<React.SetStateAction<NotesAssistState>>;
   specifications: NodeSpecification[];
   setSpecifications: React.Dispatch<React.SetStateAction<NodeSpecification[]>>;
+  onLoad?: () => void;
 }
 
 interface UseDiagramPersistenceReturn {
@@ -63,6 +64,7 @@ export function useDiagramPersistence({
   setNotesAssist,
   specifications,
   setSpecifications,
+  onLoad,
 }: UseDiagramPersistenceOptions): UseDiagramPersistenceReturn {
   const [currentDiagram, setCurrentDiagram] = useState<SavedDiagram | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -159,8 +161,11 @@ export function useDiagramPersistence({
       // Reset node ID counter
       const maxId = getMaxNodeId(diagram.state);
       onNodeIdReset(maxId);
+
+      // Notify that diagram was loaded
+      onLoad?.();
     },
-    [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications]
+    [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications, onLoad]
   );
 
   // Load with file picker

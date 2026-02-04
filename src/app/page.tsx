@@ -296,6 +296,9 @@ function HomeContent() {
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
 
+  // Center view trigger - incremented when a diagram is loaded
+  const [centerViewTrigger, setCenterViewTrigger] = useState(0);
+
   // Persistence
   const persistence = useDiagramPersistence({
     nodes,
@@ -307,6 +310,7 @@ function HomeContent() {
     setNotes,
     specifications,
     setSpecifications,
+    onLoad: () => setCenterViewTrigger(prev => prev + 1),
   });
 
   // Handle selection changes
@@ -754,6 +758,7 @@ function HomeContent() {
             onAddSpecification={handleAddSpecification}
             onUpdateSpecification={handleUpdateSpecification}
             onDeleteSpecification={handleDeleteSpecification}
+            centerViewTrigger={centerViewTrigger}
           />
         </div>
 

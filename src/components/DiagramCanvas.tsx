@@ -165,6 +165,8 @@ export interface DiagramCanvasProps {
   onAddSpecification?: (nodeId: string) => void;
   onUpdateSpecification?: (spec: NodeSpecification) => void;
   onDeleteSpecification?: (nodeId: string) => void;
+  // Center view trigger - increment to center view on content
+  centerViewTrigger?: number;
 }
 
 function DiagramCanvasInner({
@@ -186,9 +188,10 @@ function DiagramCanvasInner({
   onAddSpecification,
   onUpdateSpecification,
   onDeleteSpecification,
+  centerViewTrigger,
 }: DiagramCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, deleteElements, setCenter, getZoom } = useReactFlow();
+  const { screenToFlowPosition, deleteElements, setCenter, getZoom, fitView } = useReactFlow();
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const isDragging = useRef(false);
   const { triggerEdit } = useEditing();
@@ -222,6 +225,17 @@ function DiagramCanvasInner({
       }
     }
   }, [focusNodeId, nodes, setCenter, getZoom]);
+
+  // Center view on content when trigger changes (e.g., after loading a file)
+  useEffect(() => {
+    if (centerViewTrigger && centerViewTrigger > 0 && nodes.length > 0) {
+      // Small delay to ensure nodes are rendered
+      setTimeout(() => {
+        const currentZoom = getZoom();
+        fitView({ maxZoom: currentZoom, duration: 300 });
+      }, 50);
+    }
+  }, [centerViewTrigger, fitView, getZoom, nodes.length]);
 
   const onConnect = useCallback(
     (params: Connection) => {
