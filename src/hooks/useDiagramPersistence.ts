@@ -143,9 +143,21 @@ export function useDiagramPersistence({
       // Load specifications, using empty array for backwards compatibility
       setSpecifications(diagram.state.specifications || []);
 
-      // Load notes, using defaults for backwards compatibility
+      // Load notes with migration for missing sections
       if (diagram.notes) {
-        setNotes(diagram.notes);
+        // Merge with defaults to ensure all sections exist (handles schema evolution)
+        const loadedSectionIds = new Set(diagram.notes.sections.map(s => s.id));
+        const missingSections = DEFAULT_NOTES_SECTIONS
+          .filter(defaultSection => !loadedSectionIds.has(defaultSection.id))
+          .map(s => ({ ...s }));
+
+        // Append missing sections at the end, preserving loaded order
+        const mergedSections = [
+          ...diagram.notes.sections,
+          ...missingSections,
+        ];
+
+        setNotes({ sections: mergedSections });
       } else {
         // Old diagram without notes - reset to defaults
         setNotes({ sections: DEFAULT_NOTES_SECTIONS.map(s => ({ ...s })) });
