@@ -30,12 +30,13 @@ import {
   ContainerNode,
   BlobStorageNode,
   CdnNode,
-  StreamingBrokerNode,
+  EventStreamNode,
   WorkflowNode,
   NotificationNode,
   SchedulerNode,
   ApiGatewayNode,
 } from './nodes';
+import { getComponentLabel, getComponentColor } from '@/lib/components/registry';
 import { EditingProvider, useEditing } from './nodes/EditingContext';
 import { CloudNodeType, CloudNodeData, CloudNode, DiagramEdge, NODE_DIMENSIONS, NodeSpecification } from '@/types/diagram';
 import { ContextMenu, ContextMenuProps } from './ContextMenu';
@@ -53,30 +54,30 @@ const nodeTypes = {
   container: ContainerNode,
   blobStorage: BlobStorageNode,
   cdn: CdnNode,
-  streamingBroker: StreamingBrokerNode,
+  eventStream: EventStreamNode,
   workflow: WorkflowNode,
   notification: NotificationNode,
   scheduler: SchedulerNode,
   apiGateway: ApiGatewayNode,
 };
 
-// Default data for each node type - kept generic for system design focus
+// Default data for each node type - uses registry labels
 const defaultNodeData: Record<CloudNodeType, CloudNodeData> = {
-  client: { label: 'Client' },
-  loadBalancer: { label: 'Load Balancer' },
-  service: { label: 'Service' },
-  database: { label: 'Database' },
-  queue: { label: 'Queue' },
-  cache: { label: 'Cache' },
-  serverlessFunction: { label: 'Function' },
-  container: { label: 'Container' },
-  blobStorage: { label: 'Blob Storage' },
-  cdn: { label: 'CDN' },
-  streamingBroker: { label: 'Stream Broker' },
-  workflow: { label: 'Workflow' },
-  notification: { label: 'Notifications' },
-  scheduler: { label: 'Scheduler' },
-  apiGateway: { label: 'API Gateway' },
+  client: { label: getComponentLabel('client') },
+  loadBalancer: { label: getComponentLabel('loadBalancer') },
+  service: { label: getComponentLabel('service') },
+  database: { label: getComponentLabel('database') },
+  queue: { label: getComponentLabel('queue') },
+  cache: { label: getComponentLabel('cache') },
+  serverlessFunction: { label: getComponentLabel('serverlessFunction') },
+  container: { label: getComponentLabel('container') },
+  blobStorage: { label: getComponentLabel('blobStorage') },
+  cdn: { label: getComponentLabel('cdn') },
+  eventStream: { label: getComponentLabel('eventStream') },
+  workflow: { label: getComponentLabel('workflow') },
+  notification: { label: getComponentLabel('notification') },
+  scheduler: { label: getComponentLabel('scheduler') },
+  apiGateway: { label: getComponentLabel('apiGateway') },
 };
 
 // Sample initial diagram - generic system design focused
@@ -474,17 +475,7 @@ function DiagramCanvasInner({
       >
         <Controls position="bottom-right" />
         <MiniMap
-          nodeColor={(node) => {
-            switch (node.type) {
-              case 'client': return '#6366f1';
-              case 'loadBalancer': return '#8b5cf6';
-              case 'service': return '#3b82f6';
-              case 'database': return '#10b981';
-              case 'queue': return '#f59e0b';
-              case 'cache': return '#ef4444';
-              default: return '#94a3b8';
-            }
-          }}
+          nodeColor={(node) => getComponentColor(node.type as CloudNodeType)}
           maskColor="rgba(0, 0, 0, 0.1)"
           position="bottom-left"
         />

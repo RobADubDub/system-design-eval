@@ -1,115 +1,13 @@
 'use client';
 
 import { CloudNode, CloudNodeType, CloudNodeData } from '@/types/diagram';
+import { getComponentLabel, getComponentColor, getComponentProperties } from '@/lib/components/registry';
 
 interface NodePropertiesPanelProps {
   node: CloudNode | null;
   onUpdateNode: (nodeId: string, data: Partial<CloudNodeData>) => void;
   onClose: () => void;
 }
-
-// Field definitions for each node type
-const nodeTypeFields: Record<CloudNodeType, { key: string; label: string; type: 'text' | 'number' | 'select'; options?: string[] }[]> = {
-  client: [
-    { key: 'type', label: 'Client Type', type: 'select', options: ['web', 'mobile', 'iot', 'api'] },
-  ],
-  loadBalancer: [
-    { key: 'algorithm', label: 'Algorithm', type: 'select', options: ['round-robin', 'least-connections', 'ip-hash', 'weighted'] },
-    { key: 'healthCheck', label: 'Health Check', type: 'text' },
-  ],
-  service: [
-    { key: 'instances', label: 'Instances', type: 'number' },
-    { key: 'technology', label: 'Technology', type: 'text' },
-  ],
-  database: [
-    { key: 'type', label: 'Database Type', type: 'select', options: ['sql', 'nosql', 'graph', 'timeseries', 'cache'] },
-    { key: 'engine', label: 'Engine', type: 'text' },
-    { key: 'replication', label: 'Replication', type: 'select', options: ['none', 'primary-replica', 'multi-master'] },
-  ],
-  queue: [
-    { key: 'type', label: 'Queue Type', type: 'select', options: ['fifo', 'priority', 'pubsub'] },
-    { key: 'persistence', label: 'Persistent', type: 'select', options: ['true', 'false'] },
-    { key: 'maxSize', label: 'Max Size', type: 'number' },
-  ],
-  cache: [
-    { key: 'strategy', label: 'Strategy', type: 'select', options: ['write-through', 'write-back', 'write-around'] },
-    { key: 'eviction', label: 'Eviction Policy', type: 'select', options: ['lru', 'lfu', 'ttl'] },
-  ],
-  serverlessFunction: [
-    { key: 'runtime', label: 'Runtime', type: 'text' },
-    { key: 'timeout', label: 'Timeout (s)', type: 'number' },
-    { key: 'memory', label: 'Memory (MB)', type: 'number' },
-  ],
-  container: [
-    { key: 'image', label: 'Image', type: 'text' },
-    { key: 'replicas', label: 'Replicas', type: 'number' },
-    { key: 'orchestrator', label: 'Orchestrator', type: 'select', options: ['kubernetes', 'ecs', 'docker-compose'] },
-  ],
-  blobStorage: [
-    { key: 'versioning', label: 'Versioning', type: 'select', options: ['true', 'false'] },
-    { key: 'replication', label: 'Replication', type: 'select', options: ['single', 'cross-region'] },
-  ],
-  cdn: [
-    { key: 'caching', label: 'Caching', type: 'select', options: ['aggressive', 'standard', 'minimal'] },
-  ],
-  streamingBroker: [
-    { key: 'partitions', label: 'Partitions', type: 'number' },
-    { key: 'retention', label: 'Retention', type: 'text' },
-  ],
-  workflow: [
-    { key: 'type', label: 'Type', type: 'select', options: ['orchestration', 'choreography'] },
-    { key: 'durability', label: 'Durable', type: 'select', options: ['true', 'false'] },
-  ],
-  notification: [
-    { key: 'channels', label: 'Channels', type: 'text' },
-  ],
-  scheduler: [
-    { key: 'schedule', label: 'Schedule (cron)', type: 'text' },
-    { key: 'timezone', label: 'Timezone', type: 'text' },
-  ],
-  apiGateway: [
-    { key: 'authentication', label: 'Auth Method', type: 'select', options: ['jwt', 'api-key', 'oauth', 'none'] },
-    { key: 'rateLimit', label: 'Rate Limit (/s)', type: 'number' },
-  ],
-};
-
-// Type labels for display
-const nodeTypeLabels: Record<CloudNodeType, string> = {
-  client: 'Client',
-  loadBalancer: 'Load Balancer',
-  service: 'Service',
-  database: 'Database',
-  queue: 'Queue',
-  cache: 'Cache',
-  serverlessFunction: 'Function',
-  container: 'Container',
-  blobStorage: 'Blob Storage',
-  cdn: 'CDN',
-  streamingBroker: 'Stream Broker',
-  workflow: 'Workflow',
-  notification: 'Notifications',
-  scheduler: 'Scheduler',
-  apiGateway: 'API Gateway',
-};
-
-// Type colors for styling
-const nodeTypeColors: Record<CloudNodeType, string> = {
-  client: '#6366f1',
-  loadBalancer: '#8b5cf6',
-  service: '#3b82f6',
-  database: '#10b981',
-  queue: '#f59e0b',
-  cache: '#ef4444',
-  serverlessFunction: '#f97316',
-  container: '#0ea5e9',
-  blobStorage: '#84cc16',
-  cdn: '#06b6d4',
-  streamingBroker: '#a855f7',
-  workflow: '#ec4899',
-  notification: '#f43f5e',
-  scheduler: '#64748b',
-  apiGateway: '#7c3aed',
-};
 
 export function NodePropertiesPanel({ node, onUpdateNode, onClose }: NodePropertiesPanelProps) {
   if (!node) {
@@ -121,8 +19,8 @@ export function NodePropertiesPanel({ node, onUpdateNode, onClose }: NodePropert
   }
 
   const nodeType = node.type as CloudNodeType;
-  const fields = nodeTypeFields[nodeType] || [];
-  const color = nodeTypeColors[nodeType];
+  const fields = getComponentProperties(nodeType);
+  const color = getComponentColor(nodeType);
 
   const handleFieldChange = (key: string, value: string | number | boolean) => {
     // Convert string 'true'/'false' to boolean for persistence field
@@ -143,7 +41,7 @@ export function NodePropertiesPanel({ node, onUpdateNode, onClose }: NodePropert
             style={{ backgroundColor: color }}
           />
           <span className="font-medium text-gray-800 text-sm">
-            {nodeTypeLabels[nodeType]}
+            {getComponentLabel(nodeType)}
           </span>
         </div>
         <button

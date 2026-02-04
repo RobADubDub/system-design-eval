@@ -1,23 +1,5 @@
 import { CloudNode, DiagramEdge, CloudNodeType, DiagramNotes } from '@/types/diagram';
-
-// Human-readable names for node types
-const nodeTypeNames: Record<CloudNodeType, string> = {
-  client: 'Client',
-  loadBalancer: 'Load Balancer',
-  service: 'Service',
-  database: 'Database',
-  queue: 'Message Queue',
-  cache: 'Cache',
-  serverlessFunction: 'Serverless Function',
-  container: 'Container',
-  blobStorage: 'Blob Storage',
-  cdn: 'CDN',
-  streamingBroker: 'Streaming Broker',
-  workflow: 'Workflow Engine',
-  notification: 'Notification Service',
-  scheduler: 'Scheduler',
-  apiGateway: 'API Gateway',
-};
+import { getComponentLabel } from '@/lib/components/registry';
 
 // Get node details as string
 function getNodeDetails(node: CloudNode): string {
@@ -65,7 +47,7 @@ function getNodeDetails(node: CloudNode): string {
     case 'cdn':
       if ('caching' in data && data.caching) parts.push(`caching: ${data.caching}`);
       break;
-    case 'streamingBroker':
+    case 'eventStream':
       if ('partitions' in data && data.partitions) parts.push(`${data.partitions} partitions`);
       if ('retention' in data && data.retention) parts.push(`retention: ${data.retention}`);
       break;
@@ -95,7 +77,7 @@ function getMermaidShape(nodeType: CloudNodeType): [string, string] {
     case 'blobStorage':
       return ['[(', ')]']; // cylinder
     case 'queue':
-    case 'streamingBroker':
+    case 'eventStream':
       return ['[[', ']]']; // subroutine shape
     case 'cache':
       return ['((', '))']; // circle
@@ -142,7 +124,7 @@ function serializeToMermaid(
 
   // Define nodes with their labels and types
   for (const node of nodes) {
-    const type = nodeTypeNames[node.type as CloudNodeType] || node.type;
+    const type = getComponentLabel(node.type as CloudNodeType);
     const label = `${node.data.label}\\n(${type})`;
     const isSelected = selectedIds.has(node.id);
     const shape = getMermaidShape(node.type as CloudNodeType);
@@ -185,7 +167,7 @@ function serializeToMermaid(
   if (includeDetails) {
     lines.push('\n## Component Details\n');
     for (const node of nodes) {
-      const type = nodeTypeNames[node.type as CloudNodeType] || node.type;
+      const type = getComponentLabel(node.type as CloudNodeType);
       const details = getNodeDetails(node);
       const isSelected = selectedIds.has(node.id);
       const marker = isSelected ? ' **[SELECTED]**' : '';
@@ -251,7 +233,7 @@ The edge ID appears as the label on each connection in the Mermaid diagram.`;
  * Serialize only selected node(s) for focused questions
  */
 export function serializeSelectedNode(node: CloudNode): string {
-  const type = nodeTypeNames[node.type as CloudNodeType] || node.type;
+  const type = getComponentLabel(node.type as CloudNodeType);
   const details = getNodeDetails(node);
 
   const lines: string[] = [

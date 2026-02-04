@@ -2,9 +2,10 @@
 
 import { NodeProps } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
-import { StreamingBrokerData } from '@/types/diagram';
+import { EventStreamData } from '@/types/diagram';
+import { getComponentColor } from '@/lib/components/registry';
 
-const StreamingBrokerIcon = () => (
+const EventStreamIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M4 12h16" strokeLinecap="round" />
     <path d="M4 6h16" strokeLinecap="round" />
@@ -14,16 +15,16 @@ const StreamingBrokerIcon = () => (
   </svg>
 );
 
-export function StreamingBrokerNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as StreamingBrokerData & { isActive?: boolean };
+export function EventStreamNode({ id, data, selected }: NodeProps) {
+  const nodeData = data as EventStreamData & { isActive?: boolean };
   const hasDetails = nodeData.partitions || nodeData.retention;
 
   return (
     <BaseNode
       id={id}
       label={nodeData.label}
-      icon={<StreamingBrokerIcon />}
-      color="#a855f7"
+      icon={<EventStreamIcon />}
+      color={getComponentColor('eventStream')}
       selected={selected}
       description={nodeData.description}
       notes={nodeData.notes}

@@ -156,7 +156,7 @@ export interface CdnData extends BaseNodeData {
   caching?: 'aggressive' | 'standard' | 'minimal';
 }
 
-export interface StreamingBrokerData extends BaseNodeData {
+export interface EventStreamData extends BaseNodeData {
   partitions?: number;
   retention?: string;
 }
@@ -192,7 +192,7 @@ export type CloudNodeData =
   | ContainerData
   | BlobStorageData
   | CdnData
-  | StreamingBrokerData
+  | EventStreamData
   | WorkflowData
   | NotificationData
   | SchedulerData
@@ -210,7 +210,7 @@ export type CloudNodeType =
   | 'container'
   | 'blobStorage'
   | 'cdn'
-  | 'streamingBroker'
+  | 'eventStream'
   | 'workflow'
   | 'notification'
   | 'scheduler'

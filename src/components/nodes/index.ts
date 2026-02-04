@@ -8,7 +8,7 @@ export { ServerlessFunctionNode } from './ServerlessFunctionNode';
 export { ContainerNode } from './ContainerNode';
 export { BlobStorageNode } from './BlobStorageNode';
 export { CdnNode } from './CdnNode';
-export { StreamingBrokerNode } from './StreamingBrokerNode';
+export { EventStreamNode } from './EventStreamNode';
 export { WorkflowNode } from './WorkflowNode';
 export { NotificationNode } from './NotificationNode';
 export { SchedulerNode } from './SchedulerNode';
