@@ -2,13 +2,8 @@
 
 import { useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { DiagramNotes, NotesSection } from '@/types/diagram';
-import { SectionAssistState, HintLevel, ProblemTemplate } from '@/types/notesAssist';
-import {
-  SectionActions,
-  ValidationResult,
-  HintDisplay,
-  TemplateSelector,
-} from './notes';
+import { ProblemTemplate } from '@/types/notesAssist';
+import { TemplateSelector } from './notes';
 
 interface NotesSectionProps {
   section: NotesSection;
@@ -19,11 +14,9 @@ interface NotesSectionProps {
   shortcutNumber: number;
   sectionRef?: React.RefObject<HTMLDivElement | null>;
   // AI Assist props
-  assistState: SectionAssistState;
   canUseAssist: boolean;
-  onValidate: (sectionId: string, sectionTitle: string) => void;
-  onGetHint: (sectionId: string, sectionTitle: string, level: HintLevel) => void;
-  onClearAssist: (sectionId: string) => void;
+  onOpenAIForHint: (sectionId: string, sectionTitle: string) => void;
+  onOpenAIForValidation: (sectionId: string, sectionTitle: string) => void;
   onSelectTemplate?: (template: ProblemTemplate) => void;
 }
 
@@ -35,16 +28,13 @@ function NotesSectionComponent({
   onUpdate,
   shortcutNumber,
   sectionRef,
-  assistState,
   canUseAssist,
-  onValidate,
-  onGetHint,
-  onClearAssist,
+  onOpenAIForHint,
+  onOpenAIForValidation,
   onSelectTemplate,
 }: NotesSectionProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isProblemSection = section.id === 'problem';
-  const hasContent = (section.content?.trim().length || 0) > 0;
 
   // Auto-resize textarea
   const adjustHeight = useCallback(() => {
@@ -123,33 +113,37 @@ function NotesSectionComponent({
 
           {/* AI Assist actions for non-Problem sections */}
           {!isProblemSection && (
-            <>
-              <SectionActions
-                sectionId={section.id}
-                sectionTitle={section.title}
-                assistState={assistState}
-                canUseAssist={canUseAssist}
-                isProblemSection={false}
-                hasContent={hasContent}
-                onValidate={onValidate}
-                onGetHint={onGetHint}
-              />
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={() => onOpenAIForHint(section.id, section.title)}
+                disabled={!canUseAssist}
+                title={!canUseAssist ? 'Fill in the Problem section first' : 'Get a hint for this section'}
+                className={`
+                  px-2 py-1 text-xs font-medium rounded transition-colors
+                  ${canUseAssist
+                    ? 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }
+                `}
+              >
+                Get Hint
+              </button>
 
-              {/* Validation feedback display */}
-              <ValidationResult
-                result={assistState.validationResult}
-                onClear={() => onClearAssist(section.id)}
-              />
-
-              {/* Hints display */}
-              <HintDisplay
-                hints={assistState.hints}
-                currentLevel={assistState.currentHintLevel}
-                canGetMoreHints={canUseAssist}
-                onGetMoreHints={(level) => onGetHint(section.id, section.title, level)}
-                onClear={() => onClearAssist(section.id)}
-              />
-            </>
+              <button
+                onClick={() => onOpenAIForValidation(section.id, section.title)}
+                disabled={!canUseAssist}
+                title={!canUseAssist ? 'Fill in the Problem section first' : 'Check your work on this section'}
+                className={`
+                  px-2 py-1 text-xs font-medium rounded transition-colors
+                  ${canUseAssist
+                    ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }
+                `}
+              >
+                Check My Work
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -186,11 +180,9 @@ interface NotesPanelProps {
   onCollapseSection: (sectionId: string) => void;
   sectionRefs?: Map<string, React.RefObject<HTMLDivElement | null>>;
   // AI Assist props
-  getSectionAssist: (sectionId: string) => SectionAssistState;
   canUseAssist: boolean;
-  onValidateSection: (sectionId: string, sectionTitle: string) => void;
-  onGetHint: (sectionId: string, sectionTitle: string, level: HintLevel) => void;
-  onClearSectionAssist: (sectionId: string) => void;
+  onOpenAIForHint: (sectionId: string, sectionTitle: string) => void;
+  onOpenAIForValidation: (sectionId: string, sectionTitle: string) => void;
   onSelectTemplate: (template: ProblemTemplate) => void;
 }
 
@@ -201,11 +193,9 @@ export function NotesPanel({
   onExpandSection,
   onCollapseSection,
   sectionRefs,
-  getSectionAssist,
   canUseAssist,
-  onValidateSection,
-  onGetHint,
-  onClearSectionAssist,
+  onOpenAIForHint,
+  onOpenAIForValidation,
   onSelectTemplate,
 }: NotesPanelProps) {
   return (
@@ -224,11 +214,9 @@ export function NotesPanel({
             onUpdate={onUpdateSection}
             shortcutNumber={index + 1}
             sectionRef={sectionRefs?.get(section.id)}
-            assistState={getSectionAssist(section.id)}
             canUseAssist={canUseAssist}
-            onValidate={onValidateSection}
-            onGetHint={onGetHint}
-            onClearAssist={onClearSectionAssist}
+            onOpenAIForHint={onOpenAIForHint}
+            onOpenAIForValidation={onOpenAIForValidation}
             onSelectTemplate={section.id === 'problem' ? onSelectTemplate : undefined}
           />
         ))}

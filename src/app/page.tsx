@@ -5,12 +5,11 @@ import { useNodesState, useEdgesState, OnSelectionChangeParams } from '@xyflow/r
 import { LeftPanel, LeftPanelTab } from '@/components/LeftPanel';
 import { DiagramCanvas, initialNodes, initialEdges } from '@/components/DiagramCanvas';
 import { NodePropertiesPanel } from '@/components/NodePropertiesPanel';
-import { AIChatPanel } from '@/components/ai/AIChatPanel';
+import { AIChatPanel, AIChatMode, NotesContext, ChatExchange } from '@/components/ai/AIChatPanel';
 import { FlowSimulator } from '@/components/FlowSimulator';
 import { CloudNode, DiagramEdge, CloudNodeData, DiagramState, DiagramNotes, NodeSpecification, DEFAULT_NOTES_SECTIONS, createEmptySpecification } from '@/types/diagram';
 import { ProblemTemplate } from '@/types/notesAssist';
 import { useDiagramPersistence } from '@/hooks/useDiagramPersistence';
-import { useNotesAssist } from '@/hooks/useNotesAssist';
 import { SettingsProvider, useSettings } from '@/components/settings/SettingsContext';
 import { ModelSelector } from '@/components/settings/ModelSelector';
 
@@ -181,9 +180,6 @@ function HomeContent() {
     }));
   }, []);
 
-  // AI Assist hook for notes
-  const notesAssist = useNotesAssist({ notes, model: settings.selectedModel });
-
   // Handler for selecting a problem template
   const handleSelectTemplate = useCallback((template: ProblemTemplate) => {
     // Update the problem section with the template's problem statement
@@ -192,9 +188,7 @@ function HomeContent() {
         s.id === 'problem' ? { ...s, content: template.problemStatement, collapsed: false } : s
       ),
     }));
-    // Clear any existing assist state when template changes
-    notesAssist.clearAllAssist();
-  }, [notesAssist]);
+  }, []);
 
   // Specification handlers
   const handleAddSpecification = useCallback((nodeId: string) => {
@@ -237,11 +231,17 @@ function HomeContent() {
   const [isLeftResizing, setIsLeftResizing] = useState(false);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
 
+  // AI Assistant mode state
+  const [aiChatMode, setAiChatMode] = useState<AIChatMode>('design');
+  const [aiNotesContext, setAiNotesContext] = useState<NotesContext | undefined>(undefined);
+  const [aiInitialMessage, setAiInitialMessage] = useState<string | undefined>(undefined);
+  const [aiExchanges, setAiExchanges] = useState<ChatExchange[]>([]);
+
   // Keyboard shortcuts for notes panel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Alt+N to toggle panel view (avoid Ctrl+Shift+N which is Chrome incognito)
-      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'n') {
+      // Ctrl+` to toggle panel view
+      if ((e.ctrlKey || e.metaKey) && e.key === '`') {
         e.preventDefault();
         setLeftPanelTab(prev => prev === 'components' ? 'notes' : 'components');
         if (leftPanelCollapsed) {
@@ -305,8 +305,6 @@ function HomeContent() {
     onNodeIdReset: handleNodeIdReset,
     notes,
     setNotes,
-    notesAssist: notesAssist.assistState,
-    setNotesAssist: notesAssist.setAssistState,
     specifications,
     setSpecifications,
   });
@@ -368,6 +366,10 @@ function HomeContent() {
       if (!isPartOfSelection) {
         setSelectedNodes([node]);
       }
+      // Switch to design mode when asking about diagram components
+      setAiChatMode('design');
+      setAiNotesContext(undefined);
+      setAiInitialMessage(undefined);
       setRightPanel('ai');
     }
   }, [nodes, selectedNodes]);
@@ -413,6 +415,76 @@ function HomeContent() {
     setActiveNodeId(null);
     setActiveEdgeId(null);
   }, []);
+
+  // Get problem statement helper
+  const getProblemStatement = useCallback(() => {
+    return notes.sections.find(s => s.id === 'problem')?.content?.trim() || '';
+  }, [notes.sections]);
+
+  // Handler for opening AI panel in notes mode with a hint request
+  const handleOpenAIForHint = useCallback((sectionId: string, sectionTitle: string) => {
+    const problemStatement = getProblemStatement();
+    const section = notes.sections.find(s => s.id === sectionId);
+    const sectionContent = section?.content?.trim() || '';
+
+    setAiChatMode('notes');
+    setAiNotesContext({
+      sectionId,
+      sectionTitle,
+      sectionContent,
+      problemStatement,
+    });
+    setAiInitialMessage(`Give me a hint for the "${sectionTitle}" section. Start with general guidance, and I'll ask for more specific help if needed.`);
+    setRightPanel('ai');
+  }, [notes.sections, getProblemStatement]);
+
+  // Handler for opening AI panel in notes mode with a validation request
+  const handleOpenAIForValidation = useCallback((sectionId: string, sectionTitle: string) => {
+    const problemStatement = getProblemStatement();
+    const section = notes.sections.find(s => s.id === sectionId);
+    const sectionContent = section?.content?.trim() || '';
+
+    setAiChatMode('notes');
+    setAiNotesContext({
+      sectionId,
+      sectionTitle,
+      sectionContent,
+      problemStatement,
+    });
+    setAiInitialMessage(`Please review my "${sectionTitle}" notes and give me feedback. What have I covered well? What am I missing? Any suggestions for improvement?`);
+    setRightPanel('ai');
+  }, [notes.sections, getProblemStatement]);
+
+  // Clear initial message after it's been sent
+  const handleInitialMessageSent = useCallback(() => {
+    setAiInitialMessage(undefined);
+  }, []);
+
+  // Switch to design mode when canvas is interacted with
+  const handleCanvasInteraction = useCallback(() => {
+    if (aiChatMode === 'notes') {
+      setAiChatMode('design');
+      setAiNotesContext(undefined);
+    }
+  }, [aiChatMode]);
+
+  // Handle manual mode change from AI panel
+  const handleAIModeChange = useCallback((newMode: AIChatMode) => {
+    setAiChatMode(newMode);
+    setAiInitialMessage(undefined);
+    if (newMode === 'design') {
+      setAiNotesContext(undefined);
+    } else if (newMode === 'notes') {
+      // When switching to notes mode manually, just provide problem statement for general questions
+      const problemStatement = getProblemStatement();
+      setAiNotesContext({
+        sectionId: 'general',
+        sectionTitle: 'General',
+        sectionContent: '',
+        problemStatement,
+      });
+    }
+  }, [getProblemStatement]);
 
   // Close right panel on Escape key
   useEffect(() => {
@@ -597,11 +669,9 @@ function HomeContent() {
               onCollapseNoteSection={handleCollapseNoteSection}
               sectionRefs={sectionRefs.current}
               // AI Assist props
-              getSectionAssist={notesAssist.getSectionAssist}
-              canUseAssist={notesAssist.canUseAssist()}
-              onValidateSection={notesAssist.validateSection}
-              onGetHint={notesAssist.getHint}
-              onClearSectionAssist={notesAssist.clearSectionAssist}
+              canUseAssist={!!getProblemStatement()}
+              onOpenAIForHint={handleOpenAIForHint}
+              onOpenAIForValidation={handleOpenAIForValidation}
               onSelectTemplate={handleSelectTemplate}
             />
           </div>
@@ -710,6 +780,13 @@ function HomeContent() {
                 notes={notes}
                 onClose={closeRightPanel}
                 onFocusNode={handleFocusNode}
+                mode={aiChatMode}
+                onModeChange={handleAIModeChange}
+                notesContext={aiNotesContext}
+                initialMessage={aiInitialMessage}
+                onInitialMessageSent={handleInitialMessageSent}
+                exchanges={aiExchanges}
+                onExchangesChange={setAiExchanges}
               />
             )}
 

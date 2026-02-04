@@ -3,7 +3,7 @@
 import { ComponentPalette } from './ComponentPalette';
 import { NotesPanel } from './NotesPanel';
 import { DiagramNotes } from '@/types/diagram';
-import { SectionAssistState, HintLevel, ProblemTemplate } from '@/types/notesAssist';
+import { ProblemTemplate } from '@/types/notesAssist';
 
 export type LeftPanelTab = 'components' | 'notes';
 
@@ -17,11 +17,9 @@ interface LeftPanelProps {
   onCollapseNoteSection: (sectionId: string) => void;
   sectionRefs?: Map<string, React.RefObject<HTMLDivElement | null>>;
   // AI Assist props
-  getSectionAssist: (sectionId: string) => SectionAssistState;
   canUseAssist: boolean;
-  onValidateSection: (sectionId: string, sectionTitle: string) => void;
-  onGetHint: (sectionId: string, sectionTitle: string, level: HintLevel) => void;
-  onClearSectionAssist: (sectionId: string) => void;
+  onOpenAIForHint: (sectionId: string, sectionTitle: string) => void;
+  onOpenAIForValidation: (sectionId: string, sectionTitle: string) => void;
   onSelectTemplate: (template: ProblemTemplate) => void;
 }
 
@@ -34,11 +32,9 @@ export function LeftPanel({
   onExpandNoteSection,
   onCollapseNoteSection,
   sectionRefs,
-  getSectionAssist,
   canUseAssist,
-  onValidateSection,
-  onGetHint,
-  onClearSectionAssist,
+  onOpenAIForHint,
+  onOpenAIForValidation,
   onSelectTemplate,
 }: LeftPanelProps) {
   return (
@@ -79,11 +75,9 @@ export function LeftPanel({
             onExpandSection={onExpandNoteSection}
             onCollapseSection={onCollapseNoteSection}
             sectionRefs={sectionRefs}
-            getSectionAssist={getSectionAssist}
             canUseAssist={canUseAssist}
-            onValidateSection={onValidateSection}
-            onGetHint={onGetHint}
-            onClearSectionAssist={onClearSectionAssist}
+            onOpenAIForHint={onOpenAIForHint}
+            onOpenAIForValidation={onOpenAIForValidation}
             onSelectTemplate={onSelectTemplate}
           />
         )}

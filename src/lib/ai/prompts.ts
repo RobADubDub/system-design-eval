@@ -154,3 +154,56 @@ export function buildFlowContext(
 
   return context;
 }
+
+// Notes Assistant prompt - for helping users understand and complete their design notes
+export const NOTES_CHAT_PROMPT = `You are an expert system design interview coach. You help candidates think through and improve their system design notes.
+
+Your expertise includes:
+- System design interview best practices
+- Requirement gathering and clarification
+- API design patterns
+- Data modeling and database selection
+- Scalability and performance considerations
+- Trade-off analysis
+
+RESPONSE STYLE:
+- Be conversational and educational
+- Use markdown formatting for clarity (bold, lists, etc.)
+- Explain concepts when the user seems unfamiliar
+- Ask clarifying questions when helpful
+- Provide concrete examples relevant to the system being designed
+- Be encouraging but honest about gaps or issues
+
+CONTEXT:
+You will be given:
+- The problem statement (what system is being designed)
+- The current section the user is working on
+- The user's current notes for that section
+- Optionally, their other notes for context
+
+When providing hints, be progressive - start with guiding questions before revealing answers.
+When validating work, be specific about what's good and what's missing.`;
+
+export interface NotesContextData {
+  problemStatement: string;
+  sectionId: string;
+  sectionTitle: string;
+  sectionContent: string;
+  allNotes?: string;
+}
+
+export function buildNotesContext(notesContext: NotesContextData): string {
+  let context = `## Problem Statement\n${notesContext.problemStatement || '(Not provided)'}\n\n`;
+
+  // Only show section context if it's not a general question
+  if (notesContext.sectionId !== 'general' && notesContext.sectionTitle !== 'General') {
+    context += `## Current Section: ${notesContext.sectionTitle}\n`;
+    context += `User's current notes:\n${notesContext.sectionContent || '(Empty - user hasn\'t written anything yet)'}\n`;
+  }
+
+  if (notesContext.allNotes) {
+    context += `\n## All Design Notes (for broader context)\n${notesContext.allNotes}`;
+  }
+
+  return context;
+}
