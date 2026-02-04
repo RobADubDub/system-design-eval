@@ -1,5 +1,4 @@
 import { SavedDiagram, DiagramState, DiagramNotes, SpecItem, NodeSpecification, DEFAULT_NOTES_SECTIONS, generateSpecItemId } from '@/types/diagram';
-import { NotesAssistState, SectionAssistState, createDefaultSectionAssistState } from '@/types/notesAssist';
 
 const CURRENT_VERSION = '2.1';
 
@@ -11,18 +10,6 @@ const CURRENT_VERSION = '2.1';
 interface SerializedSpecItem {
   text: string;
   children?: SerializedSpecItem[];
-}
-
-/**
- * Check if section assist state is default (no hints, no validation)
- */
-function isDefaultSectionAssistState(state: SectionAssistState): boolean {
-  return (
-    state.currentHintLevel === null &&
-    state.hints.length === 0 &&
-    state.validationResult === null &&
-    state.isLoading === false
-  );
 }
 
 /**
@@ -66,19 +53,6 @@ function cleanSpecifications(specs: NodeSpecification[] | undefined): Serialized
     }));
 
   return cleaned.length > 0 ? cleaned : undefined;
-}
-
-/**
- * Clean notes assist state: only keep sections with non-default state
- */
-function cleanNotesAssistState(state: NotesAssistState | undefined): NotesAssistState | undefined {
-  if (!state) return undefined;
-
-  const nonDefaultSections = state.sections.filter(s => !isDefaultSectionAssistState(s));
-
-  if (nonDefaultSections.length === 0) return undefined;
-
-  return { sections: nonDefaultSections };
 }
 
 /**
@@ -127,11 +101,6 @@ function cleanDiagramForSave(diagram: SavedDiagram): SerializedSavedDiagram {
     cleaned.notes = cleanedNotes;
   }
 
-  const cleanedNotesAssist = cleanNotesAssistState(diagram.notesAssist);
-  if (cleanedNotesAssist) {
-    cleaned.notesAssist = cleanedNotesAssist;
-  }
-
   return cleaned;
 }
 
@@ -174,7 +143,6 @@ interface SerializedSavedDiagram {
   updatedAt: string;
   state: SerializedDiagramState;
   notes?: DiagramNotes;
-  notesAssist?: NotesAssistState;
 }
 
 /**
@@ -186,23 +154,6 @@ function restoreSpecifications(specs: SerializedNodeSpecification[] | undefined)
     ...spec,
     items: restoreSpecItems(spec.items),
   }));
-}
-
-/**
- * Restore notes assist state with defaults for missing sections
- */
-function restoreNotesAssistState(
-  state: NotesAssistState | undefined,
-  sectionIds: string[]
-): NotesAssistState {
-  const existingSections = state?.sections ?? [];
-
-  return {
-    sections: sectionIds.map(id => {
-      const existing = existingSections.find(s => s.sectionId === id);
-      return existing ?? createDefaultSectionAssistState(id);
-    }),
-  };
 }
 
 /**
@@ -222,8 +173,7 @@ function restoreDiagramState(state: SerializedDiagramState): DiagramState {
 export function createSavedDiagram(
   name: string,
   state: DiagramState,
-  notes?: DiagramNotes,
-  notesAssist?: NotesAssistState
+  notes?: DiagramNotes
 ): SavedDiagram {
   const now = new Date().toISOString();
   return {
@@ -233,7 +183,6 @@ export function createSavedDiagram(
     updatedAt: now,
     state,
     notes,
-    notesAssist,
   };
 }
 
@@ -244,8 +193,7 @@ export function updateSavedDiagram(
   diagram: SavedDiagram,
   state: DiagramState,
   name?: string,
-  notes?: DiagramNotes,
-  notesAssist?: NotesAssistState
+  notes?: DiagramNotes
 ): SavedDiagram {
   return {
     ...diagram,
@@ -253,7 +201,6 @@ export function updateSavedDiagram(
     updatedAt: new Date().toISOString(),
     state,
     notes: notes ?? diagram.notes,
-    notesAssist: notesAssist ?? diagram.notesAssist,
   };
 }
 
@@ -281,12 +228,9 @@ export function parseDiagram(json: string): SavedDiagram {
   }
 
   // Restore defaults for optional/nested fields
-  const sectionIds = DEFAULT_NOTES_SECTIONS.map(s => s.id);
-
   const restored: SavedDiagram = {
     ...parsed,
     state: restoreDiagramState(parsed.state),
-    notesAssist: restoreNotesAssistState(parsed.notesAssist, sectionIds),
   };
 
   return restored;

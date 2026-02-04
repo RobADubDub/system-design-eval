@@ -1,5 +1,4 @@
 import { Node, Edge } from '@xyflow/react';
-import { NotesAssistState } from './notesAssist';
 
 // ============================================
 // Specification Types (Linked Annotations)
@@ -271,7 +270,6 @@ export interface SavedDiagram {
   updatedAt: string;
   state: DiagramState;
   notes?: DiagramNotes;  // Optional for backwards compatibility
-  notesAssist?: NotesAssistState;  // Optional for backwards compatibility
 }
 
 // Flow simulation types

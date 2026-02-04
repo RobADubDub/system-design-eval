@@ -29,7 +29,6 @@ interface UseDiagramPersistenceOptions {
   onNodeIdReset: (maxId: number) => void;
   notes: DiagramNotes;
   setNotes: React.Dispatch<React.SetStateAction<DiagramNotes>>;
-  notesAssist?: NotesAssistState;
   setNotesAssist?: React.Dispatch<React.SetStateAction<NotesAssistState>>;
   specifications: NodeSpecification[];
   setSpecifications: React.Dispatch<React.SetStateAction<NodeSpecification[]>>;
@@ -61,7 +60,6 @@ export function useDiagramPersistence({
   onNodeIdReset,
   notes,
   setNotes,
-  notesAssist,
   setNotesAssist,
   specifications,
   setSpecifications,
@@ -85,10 +83,6 @@ export function useDiagramPersistence({
     return notes;
   }, [notes]);
 
-  const getCurrentNotesAssist = useCallback((): NotesAssistState | undefined => {
-    return notesAssist;
-  }, [notesAssist]);
-
   // Save with file picker (Save As)
   const saveAs = useCallback(async (): Promise<boolean> => {
     setIsLoading(true);
@@ -97,10 +91,9 @@ export function useDiagramPersistence({
     try {
       const state = getCurrentState();
       const currentNotes = getCurrentNotes();
-      const currentAssist = getCurrentNotesAssist();
       const diagram = currentDiagram
-        ? updateSavedDiagram(currentDiagram, state, diagramName, currentNotes, currentAssist)
-        : createSavedDiagram(diagramName, state, currentNotes, currentAssist);
+        ? updateSavedDiagram(currentDiagram, state, diagramName, currentNotes)
+        : createSavedDiagram(diagramName, state, currentNotes);
 
       const success = await saveDiagramWithPicker(diagram);
 
@@ -116,21 +109,20 @@ export function useDiagramPersistence({
     } finally {
       setIsLoading(false);
     }
-  }, [currentDiagram, diagramName, getCurrentState, getCurrentNotes, getCurrentNotesAssist]);
+  }, [currentDiagram, diagramName, getCurrentState, getCurrentNotes]);
 
   // Quick save (download without picker)
   const quickSave = useCallback(() => {
     const state = getCurrentState();
     const currentNotes = getCurrentNotes();
-    const currentAssist = getCurrentNotesAssist();
     const diagram = currentDiagram
-      ? updateSavedDiagram(currentDiagram, state, diagramName, currentNotes, currentAssist)
-      : createSavedDiagram(diagramName, state, currentNotes, currentAssist);
+      ? updateSavedDiagram(currentDiagram, state, diagramName, currentNotes)
+      : createSavedDiagram(diagramName, state, currentNotes);
 
     downloadDiagram(diagram);
     setCurrentDiagram(diagram);
     setIsDirty(false);
-  }, [currentDiagram, diagramName, getCurrentState, getCurrentNotes, getCurrentNotesAssist]);
+  }, [currentDiagram, diagramName, getCurrentState, getCurrentNotes]);
 
   // Save (uses picker if supported, otherwise downloads)
   const save = useCallback(async (): Promise<boolean> => {
@@ -157,16 +149,11 @@ export function useDiagramPersistence({
         setNotes({ sections: DEFAULT_NOTES_SECTIONS.map(s => ({ ...s })) });
       }
 
-      // Load notes assist state if available and setter is provided
+      // Reset notes assist state (AI feedback is ephemeral, not persisted)
       if (setNotesAssist) {
-        if (diagram.notesAssist) {
-          setNotesAssist(diagram.notesAssist);
-        } else {
-          // Old diagram without assist state - reset to defaults
-          const sectionIds = diagram.notes?.sections.map(s => s.id)
-            || DEFAULT_NOTES_SECTIONS.map(s => s.id);
-          setNotesAssist(createDefaultNotesAssistState(sectionIds));
-        }
+        const sectionIds = diagram.notes?.sections.map(s => s.id)
+          || DEFAULT_NOTES_SECTIONS.map(s => s.id);
+        setNotesAssist(createDefaultNotesAssistState(sectionIds));
       }
 
       // Reset node ID counter
