@@ -37,6 +37,7 @@ function HomeContent() {
   // Diagram state - lifted from DiagramCanvas
   const [nodes, setNodes, onNodesChange] = useNodesState<CloudNode>(initialNodes as CloudNode[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<DiagramEdge>(initialEdges as DiagramEdge[]);
+  const [specifications, setSpecifications] = useState<NodeSpecification[]>([]);
 
   // History state for undo/redo
   const [history, setHistory] = useState<{
@@ -50,10 +51,10 @@ function HomeContent() {
   // Commit current state to history (call when a discrete change completes)
   const commitToHistory = useCallback(() => {
     setHistory((h) => ({
-      past: [...h.past, { nodes, edges }].slice(-MAX_HISTORY),
+      past: [...h.past, { nodes, edges, specifications }].slice(-MAX_HISTORY),
       future: [], // Clear redo stack on new change
     }));
-  }, [nodes, edges]);
+  }, [nodes, edges, specifications]);
 
   // Undo - restore previous state
   const undo = useCallback(() => {
@@ -61,15 +62,16 @@ function HomeContent() {
       if (h.past.length === 0) return h;
       const previous = h.past[h.past.length - 1];
       // Save current state to future before restoring
-      const currentState = { nodes, edges };
+      const currentState = { nodes, edges, specifications };
       setNodes(previous.nodes);
       setEdges(previous.edges);
+      setSpecifications(previous.specifications || []);
       return {
         past: h.past.slice(0, -1),
         future: [currentState, ...h.future],
       };
     });
-  }, [nodes, edges, setNodes, setEdges]);
+  }, [nodes, edges, specifications, setNodes, setEdges, setSpecifications]);
 
   // Redo - restore next state
   const redo = useCallback(() => {
@@ -77,15 +79,16 @@ function HomeContent() {
       if (h.future.length === 0) return h;
       const next = h.future[0];
       // Save current state to past before restoring
-      const currentState = { nodes, edges };
+      const currentState = { nodes, edges, specifications };
       setNodes(next.nodes);
       setEdges(next.edges);
+      setSpecifications(next.specifications || []);
       return {
         past: [...h.past, currentState],
         future: h.future.slice(1),
       };
     });
-  }, [nodes, edges, setNodes, setEdges]);
+  }, [nodes, edges, specifications, setNodes, setEdges, setSpecifications]);
 
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
@@ -132,9 +135,6 @@ function HomeContent() {
   const [notes, setNotes] = useState<DiagramNotes>({
     sections: DEFAULT_NOTES_SECTIONS.map(s => ({ ...s })),
   });
-
-  // Specifications state (linked annotations)
-  const [specifications, setSpecifications] = useState<NodeSpecification[]>([]);
 
   // Left panel state
   const [leftPanelTab, setLeftPanelTab] = useState<LeftPanelTab>('components');
