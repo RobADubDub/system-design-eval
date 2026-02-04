@@ -471,7 +471,10 @@ function DiagramCanvasInner({
         defaultEdgeOptions={{
           style: { strokeWidth: 2, stroke: '#94a3b8' },
           type: 'smoothstep',
+          interactionWidth: 20, // Wider hit area for easier clicking
         }}
+        edgesFocusable={true}
+        edgesReconnectable={true}
       >
         <Controls position="bottom-right" />
         <MiniMap

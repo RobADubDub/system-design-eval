@@ -172,7 +172,7 @@ function serializeToMermaid(
       const isSelected = selectedIds.has(node.id);
       const marker = isSelected ? ' **[SELECTED]**' : '';
 
-      lines.push(`- **${node.data.label}** (id: ${node.id})${marker}: ${type}${details}`);
+      lines.push(`- **${node.data.label}**${marker}: ${type}${details}`);
       if (node.data.description) {
         lines.push(`  - Description: ${node.data.description}`);
       }
@@ -237,7 +237,7 @@ export function serializeSelectedNode(node: CloudNode): string {
   const details = getNodeDetails(node);
 
   const lines: string[] = [
-    `**${node.data.label}** (id: ${node.id}, ${type})${details}`,
+    `**${node.data.label}** (${type})${details}`,
   ];
 
   if (node.data.description) {

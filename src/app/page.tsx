@@ -397,17 +397,26 @@ function HomeContent() {
     },
   }));
 
-  // Apply active states for flow simulation to edges
-  const edgesWithActiveState = edges.map((edge) => ({
-    ...edge,
-    animated: edge.id === activeEdgeId || edge.animated,
-    style: edge.id === activeEdgeId
-      ? { ...edge.style, stroke: '#22c55e', strokeWidth: 3 }
-      : edge.style,
-  }));
+  // Apply active states for flow simulation and selection styling to edges
+  const edgesWithActiveState = edges.map((edge) => {
+    const isActive = edge.id === activeEdgeId;
+    const isSelected = selectedEdges.some((e) => e.id === edge.id);
+    return {
+      ...edge,
+      animated: isActive || edge.animated,
+      style: isActive
+        ? { ...edge.style, stroke: '#22c55e', strokeWidth: 3 }
+        : isSelected
+        ? { ...edge.style, stroke: '#3b82f6', strokeWidth: 3 }
+        : edge.style,
+    };
+  });
 
   // Get the currently selected node (single selection only for properties)
-  const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
+  // Derive selectedNode from current nodes state to get fresh data after updates
+  const selectedNode = selectedNodes.length === 1
+    ? nodes.find((n) => n.id === selectedNodes[0].id) ?? null
+    : null;
 
   const closeRightPanel = useCallback(() => {
     setRightPanel('none');
@@ -751,7 +760,7 @@ function HomeContent() {
         {/* Right sidebar - Context-dependent with resize handle */}
         {rightPanel !== 'none' && (
           <div
-            className="relative flex bg-white border-l border-gray-200"
+            className="relative flex bg-white border-l border-gray-200 z-20"
             style={{ width: rightPanelWidth }}
           >
           {/* Resize handle */}
