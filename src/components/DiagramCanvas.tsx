@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, DragEvent, useState, KeyboardEvent, useEffect } from 'react';
+import { useCallback, useRef, DragEvent, useState, KeyboardEvent, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -165,11 +165,14 @@ export interface DiagramCanvasProps {
   onAddSpecification?: (nodeId: string) => void;
   onUpdateSpecification?: (spec: NodeSpecification) => void;
   onDeleteSpecification?: (nodeId: string) => void;
-  // Center view trigger - increment to center view on content
-  centerViewTrigger?: number;
 }
 
-function DiagramCanvasInner({
+// Methods exposed via ref
+export interface DiagramCanvasHandle {
+  centerView: () => void;
+}
+
+const DiagramCanvasInner = forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(function DiagramCanvasInner({
   nodes,
   edges,
   onNodesChange,
@@ -188,10 +191,19 @@ function DiagramCanvasInner({
   onAddSpecification,
   onUpdateSpecification,
   onDeleteSpecification,
-  centerViewTrigger,
-}: DiagramCanvasProps) {
+}, ref) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, deleteElements, setCenter, getZoom, fitView } = useReactFlow();
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    centerView: () => {
+      if (nodes.length > 0) {
+        const currentZoom = getZoom();
+        fitView({ maxZoom: currentZoom, duration: 300 });
+      }
+    },
+  }), [nodes.length, getZoom, fitView]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const isDragging = useRef(false);
   const { triggerEdit } = useEditing();
@@ -225,17 +237,6 @@ function DiagramCanvasInner({
       }
     }
   }, [focusNodeId, nodes, setCenter, getZoom]);
-
-  // Center view on content when trigger changes (e.g., after loading a file)
-  useEffect(() => {
-    if (centerViewTrigger && centerViewTrigger > 0 && nodes.length > 0) {
-      // Small delay to ensure nodes are rendered
-      setTimeout(() => {
-        const currentZoom = getZoom();
-        fitView({ maxZoom: currentZoom, duration: 300 });
-      }, 50);
-    }
-  }, [centerViewTrigger, fitView, getZoom, nodes.length]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -527,18 +528,21 @@ function DiagramCanvasInner({
       )}
     </div>
   );
-}
+});
 
 // Export types and defaults for external use
 export { nodeTypes, defaultNodeData, initialNodes, initialEdges };
 
 // Wrapper component that provides ReactFlowProvider and EditingProvider context
-export function DiagramCanvas(props: DiagramCanvasProps) {
-  return (
-    <ReactFlowProvider>
-      <EditingProvider>
-        <DiagramCanvasInner {...props} />
-      </EditingProvider>
-    </ReactFlowProvider>
-  );
-}
+// Forwards ref to inner component for imperative methods
+export const DiagramCanvas = forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(
+  function DiagramCanvas(props, ref) {
+    return (
+      <ReactFlowProvider>
+        <EditingProvider>
+          <DiagramCanvasInner ref={ref} {...props} />
+        </EditingProvider>
+      </ReactFlowProvider>
+    );
+  }
+);

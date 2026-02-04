@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, MouseEvent, createRef } from 'react';
 import { useNodesState, useEdgesState, OnSelectionChangeParams } from '@xyflow/react';
 import { LeftPanel, LeftPanelTab } from '@/components/LeftPanel';
-import { DiagramCanvas, initialNodes, initialEdges } from '@/components/DiagramCanvas';
+import { DiagramCanvas, DiagramCanvasHandle, initialNodes, initialEdges } from '@/components/DiagramCanvas';
 import { NodePropertiesPanel } from '@/components/NodePropertiesPanel';
 import { AIChatPanel, AIChatMode, NotesContext, ChatExchange } from '@/components/ai/AIChatPanel';
 import { FlowSimulator } from '@/components/FlowSimulator';
@@ -296,8 +296,8 @@ function HomeContent() {
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
 
-  // Center view trigger - incremented when a diagram is loaded
-  const [centerViewTrigger, setCenterViewTrigger] = useState(0);
+  // Canvas ref for imperative methods
+  const canvasRef = useRef<DiagramCanvasHandle>(null);
 
   // Persistence
   const persistence = useDiagramPersistence({
@@ -310,7 +310,10 @@ function HomeContent() {
     setNotes,
     specifications,
     setSpecifications,
-    onLoad: () => setCenterViewTrigger(prev => prev + 1),
+    onLoad: () => {
+      // Center view on loaded content after a brief delay for rendering
+      setTimeout(() => canvasRef.current?.centerView(), 50);
+    },
   });
 
   // Handle selection changes
@@ -740,6 +743,7 @@ function HomeContent() {
         {/* Canvas area */}
         <div className="flex-1 min-w-0">
           <DiagramCanvas
+            ref={canvasRef}
             nodes={nodesWithActiveState as CloudNode[]}
             edges={edgesWithActiveState as DiagramEdge[]}
             onNodesChange={onNodesChange}
@@ -758,7 +762,6 @@ function HomeContent() {
             onAddSpecification={handleAddSpecification}
             onUpdateSpecification={handleUpdateSpecification}
             onDeleteSpecification={handleDeleteSpecification}
-            centerViewTrigger={centerViewTrigger}
           />
         </div>
 
