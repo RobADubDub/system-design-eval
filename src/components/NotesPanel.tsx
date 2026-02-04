@@ -200,10 +200,7 @@ export function NotesPanel({
 }: NotesPanelProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-2">
-        <h2 className="text-sm font-semibold text-gray-700">Design Notes</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pt-1">
         {notes.sections.map((section, index) => (
           <NotesSectionComponent
             key={section.id}
@@ -220,11 +217,6 @@ export function NotesPanel({
             onSelectTemplate={section.id === 'problem' ? onSelectTemplate : undefined}
           />
         ))}
-      </div>
-      <div className="p-3 border-t border-gray-100">
-        <p className="text-xs text-gray-400">
-          Notes saved with diagram
-        </p>
       </div>
     </div>
   );

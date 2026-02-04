@@ -12,10 +12,7 @@ export function ComponentPalette() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 pb-2">
-        <h2 className="text-sm font-semibold text-gray-700">Components</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 pb-2">
+      <div className="flex-1 overflow-y-auto p-4 pt-2">
         <div className="space-y-2">
           {PALETTE_ORDER.map((type) => {
             const meta = COMPONENT_REGISTRY[type];
@@ -34,11 +31,6 @@ export function ComponentPalette() {
             );
           })}
         </div>
-      </div>
-      <div className="p-4 pt-2 border-t border-gray-200">
-        <p className="text-xs text-gray-400">
-          Drag components onto the canvas
-        </p>
       </div>
     </div>
   );
