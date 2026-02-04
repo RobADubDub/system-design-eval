@@ -37,6 +37,68 @@ export interface NotesContext {
   problemStatement: string;
 }
 
+// Quick action template type
+interface QuickActionTemplate {
+  label: string;
+  base: string;
+  focused: string;
+}
+
+// Mode configuration for extensibility
+interface ModeConfig {
+  title: string;
+  icon: string;
+  headerColor: string;
+  accentColor: string;
+  loadingText: string;
+  continuingText: string;
+  showQuickActions: boolean;
+  showContextIndicator: boolean;
+  quickActions: QuickActionTemplate[];
+  emptyState: {
+    primary: string;
+    secondary: string;
+  };
+}
+
+const MODE_CONFIGS: Record<AIChatMode, ModeConfig> = {
+  notes: {
+    title: 'Notes Assistant',
+    icon: '📝',
+    headerColor: 'text-amber-600',
+    accentColor: 'bg-amber-500',
+    loadingText: 'Thinking...',
+    continuingText: 'Continuing...',
+    showQuickActions: false,
+    showContextIndicator: false,
+    quickActions: [],
+    emptyState: {
+      primary: 'Ask questions about the system design',
+      secondary: 'Clarify requirements, get hints, or validate your notes',
+    },
+  },
+  design: {
+    title: 'Design Assistant',
+    icon: '🤖',
+    headerColor: 'text-purple-600',
+    accentColor: 'bg-blue-500',
+    loadingText: 'Analyzing...',
+    continuingText: 'Loading more insights...',
+    showQuickActions: true,
+    showContextIndicator: true,
+    quickActions: [
+      { label: 'Find bottlenecks', base: 'What are the potential bottlenecks', focused: 'What are the potential bottlenecks for {components}' },
+      { label: 'Suggest improvements', base: 'What improvements would you suggest', focused: 'What improvements would you suggest for {components}' },
+      { label: 'Check redundancy', base: 'Are there any single points of failure', focused: 'Are there any single points of failure related to {components}' },
+      { label: 'Security review', base: 'What security concerns should I consider', focused: 'What security concerns should I consider for {components}' },
+    ],
+    emptyState: {
+      primary: 'Ask questions about your system design',
+      secondary: 'Responses appear as structured insights',
+    },
+  },
+};
+
 interface AIChatPanelProps {
   nodes: CloudNode[];
   edges: DiagramEdge[];
@@ -54,14 +116,6 @@ interface AIChatPanelProps {
   exchanges: ChatExchange[];
   onExchangesChange: (exchanges: ChatExchange[] | ((prev: ChatExchange[]) => ChatExchange[])) => void;
 }
-
-// Quick action templates for design mode
-const designQuickActions = [
-  { label: 'Find bottlenecks', base: 'What are the potential bottlenecks', focused: 'What are the potential bottlenecks for {components}' },
-  { label: 'Suggest improvements', base: 'What improvements would you suggest', focused: 'What improvements would you suggest for {components}' },
-  { label: 'Check redundancy', base: 'Are there any single points of failure', focused: 'Are there any single points of failure related to {components}' },
-  { label: 'Security review', base: 'What security concerns should I consider', focused: 'What security concerns should I consider for {components}' },
-];
 
 export function AIChatPanel({
   nodes,
@@ -275,8 +329,8 @@ export function AIChatPanel({
     }
   };
 
-  // Build context-aware prompt from quick action template (design mode)
-  const buildQuickActionPrompt = (template: typeof designQuickActions[0]) => {
+  // Build context-aware prompt from quick action template
+  const buildQuickActionPrompt = (template: QuickActionTemplate) => {
     if (selectedNodes.length === 0) {
       return template.base + '?';
     }
@@ -286,7 +340,7 @@ export function AIChatPanel({
     return template.focused.replace('{components}', componentNames) + '?';
   };
 
-  const handleQuickAction = (template: typeof designQuickActions[0]) => {
+  const handleQuickAction = (template: QuickActionTemplate) => {
     setInput(buildQuickActionPrompt(template));
   };
 
@@ -330,15 +384,12 @@ export function AIChatPanel({
   // Filter exchanges to only show current mode's conversation
   const currentModeExchanges = exchanges.filter((ex) => ex.mode === mode);
 
-  // Determine header and styling based on mode
-  const isNotesMode = mode === 'notes';
-  const headerTitle = isNotesMode ? 'Notes Assistant' : 'Design Assistant';
-  const headerColor = isNotesMode ? 'text-amber-600' : 'text-purple-600';
-  const accentColor = isNotesMode ? 'bg-amber-500' : 'bg-blue-500';
+  // Get mode configuration
+  const modeConfig = MODE_CONFIGS[mode];
 
-  // Get placeholder text
-  const getPlaceholder = () => {
-    if (isNotesMode) {
+  // Get placeholder text based on mode and context
+  const getPlaceholder = (): string => {
+    if (mode === 'notes') {
       if (!notesContext?.problemStatement) {
         return 'Fill in the Problem section first...';
       }
@@ -347,6 +398,7 @@ export function AIChatPanel({
       }
       return `Ask about ${notesContext?.sectionTitle || 'your notes'}...`;
     }
+    // Design mode
     if (nodes.length === 0) {
       return 'Add components to your diagram first';
     }
@@ -359,7 +411,8 @@ export function AIChatPanel({
     return 'Ask about your system design...';
   };
 
-  const canSendMessage = isNotesMode
+  // Determine if sending is allowed based on mode
+  const canSendMessage = mode === 'notes'
     ? !!notesContext?.problemStatement
     : nodes.length > 0;
 
@@ -369,11 +422,11 @@ export function AIChatPanel({
       <div className="p-3 border-b border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className={`text-lg ${headerColor}`}>
-              {isNotesMode ? '📝' : '🤖'}
+            <span className={`text-lg ${modeConfig.headerColor}`}>
+              {modeConfig.icon}
             </span>
             <span className="font-medium text-gray-800 text-sm">
-              {headerTitle}
+              {modeConfig.title}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -404,7 +457,7 @@ export function AIChatPanel({
             <button
               onClick={() => onModeChange('notes')}
               className={`flex-1 px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                isNotesMode
+                mode === 'notes'
                   ? 'bg-white text-gray-800 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -414,7 +467,7 @@ export function AIChatPanel({
             <button
               onClick={() => onModeChange('design')}
               className={`flex-1 px-2 py-1 text-xs font-medium rounded-md transition-colors ${
-                !isNotesMode
+                mode === 'design'
                   ? 'bg-white text-gray-800 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -425,8 +478,8 @@ export function AIChatPanel({
         )}
       </div>
 
-      {/* Context indicator - only for design mode with selected nodes */}
-      {!isNotesMode && selectedNodes.length > 0 && (
+      {/* Context indicator - shown when mode supports it and nodes are selected */}
+      {modeConfig.showContextIndicator && selectedNodes.length > 0 && (
         <div className="px-3 py-2 bg-blue-50 border-b border-blue-100">
           <span className="text-xs text-blue-600">
             {selectedNodes.length === 1 ? (
@@ -438,11 +491,11 @@ export function AIChatPanel({
         </div>
       )}
 
-      {/* Quick actions (design mode only) */}
-      {!isNotesMode && (
+      {/* Quick actions - shown when mode has them */}
+      {modeConfig.showQuickActions && modeConfig.quickActions.length > 0 && (
         <div className="p-3 border-b border-gray-100">
           <div className="flex flex-wrap gap-1.5">
-            {designQuickActions.map((template) => (
+            {modeConfig.quickActions.map((template) => (
               <button
                 key={template.label}
                 onClick={() => handleQuickAction(template)}
@@ -460,17 +513,8 @@ export function AIChatPanel({
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {currentModeExchanges.length === 0 && (
           <div className="text-center text-gray-400 text-sm py-8">
-            {isNotesMode ? (
-              <>
-                <p>Ask questions about the system design</p>
-                <p className="text-xs mt-1">Clarify requirements, get hints, or validate your notes</p>
-              </>
-            ) : (
-              <>
-                <p>Ask questions about your system design</p>
-                <p className="text-xs mt-1">Responses appear as structured insights</p>
-              </>
-            )}
+            <p>{modeConfig.emptyState.primary}</p>
+            <p className="text-xs mt-1">{modeConfig.emptyState.secondary}</p>
           </div>
         )}
 
@@ -478,18 +522,18 @@ export function AIChatPanel({
           <div key={exchange.id} className="space-y-2">
             {/* User question */}
             <div className="ml-4">
-              <div className={`px-3 py-2 rounded-lg text-sm ${accentColor} text-white`}>
+              <div className={`px-3 py-2 rounded-lg text-sm ${modeConfig.accentColor} text-white`}>
                 {exchange.question}
               </div>
             </div>
 
             {/* Response - different format based on mode */}
-            {isNotesMode ? (
+            {mode === 'notes' ? (
               // Notes mode: markdown response
               <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
                 {exchange.isLoading && !exchange.textResponse ? (
                   <div className="text-center text-gray-500 text-sm">
-                    <div className="animate-pulse">Thinking...</div>
+                    <div className="animate-pulse">{modeConfig.loadingText}</div>
                   </div>
                 ) : (
                   <div className="text-sm text-gray-700 prose prose-sm max-w-none">
@@ -510,7 +554,7 @@ export function AIChatPanel({
                 )}
                 {exchange.isLoading && exchange.textResponse && (
                   <div className="mt-2 text-xs text-amber-600 animate-pulse">
-                    Continuing...
+                    {modeConfig.continuingText}
                   </div>
                 )}
               </div>
@@ -519,7 +563,7 @@ export function AIChatPanel({
               <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
                 {exchange.isLoading && (!exchange.insights || exchange.insights.length === 0) ? (
                   <div className="px-3 py-4 text-center text-gray-500 text-sm">
-                    <div className="animate-pulse">Analyzing...</div>
+                    <div className="animate-pulse">{modeConfig.loadingText}</div>
                   </div>
                 ) : (
                   <table className="w-full text-xs">
@@ -555,7 +599,7 @@ export function AIChatPanel({
                 )}
                 {exchange.isLoading && exchange.insights && exchange.insights.length > 0 && (
                   <div className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] text-center">
-                    Loading more insights...
+                    {modeConfig.continuingText}
                   </div>
                 )}
               </div>
@@ -594,11 +638,7 @@ export function AIChatPanel({
               <button
                 type="submit"
                 disabled={!input.trim() || !canSendMessage}
-                className={`px-3 py-1.5 text-sm text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                  isNotesMode
-                    ? 'bg-amber-500 hover:bg-amber-600'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
+                className={`px-3 py-1.5 text-sm text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${modeConfig.accentColor} hover:opacity-90`}
               >
                 Send
               </button>
