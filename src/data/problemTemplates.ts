@@ -122,6 +122,12 @@ export const PROBLEM_TEMPLATES: ProblemTemplate[] = [
     category: 'Infrastructure',
     problemStatement: 'Design a distributed job scheduler like Apache Airflow for executing scheduled tasks and workflows.',
   },
+  {
+    id: 'distributed-tracing-platform',
+    name: 'Distributed Tracing Platform',
+    category: 'Developer Tools',
+    problemStatement: 'Design a multi-tenant distributed tracing platform that supports the three pillars of observability: metrics, traces, and logs.',
+  },
 
   // ===== Infrastructure =====
   {

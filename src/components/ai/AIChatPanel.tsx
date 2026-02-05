@@ -139,6 +139,7 @@ export function AIChatPanel({
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevModeRef = useRef<AIChatMode>(mode);
   const initialMessageSentRef = useRef(false);
+  const lastInitialMessageRef = useRef<string | undefined>(undefined);
 
   // Serialize diagram context for design mode
   const selectedNodeIds = selectedNodes.map((n) => n.id);
@@ -152,6 +153,7 @@ export function AIChatPanel({
   useEffect(() => {
     if (prevModeRef.current !== mode) {
       initialMessageSentRef.current = false;
+      lastInitialMessageRef.current = undefined;
       prevModeRef.current = mode;
     }
   }, [mode]);
@@ -159,8 +161,13 @@ export function AIChatPanel({
   // Handle initial message (e.g., from "Get Hint" button)
   // This clears the current mode's conversation and starts fresh with the new context
   useEffect(() => {
-    if (initialMessage && !initialMessageSentRef.current && !isLoading) {
+    if (
+      initialMessage &&
+      !isLoading &&
+      (initialMessage !== lastInitialMessageRef.current || !initialMessageSentRef.current)
+    ) {
       initialMessageSentRef.current = true;
+      lastInitialMessageRef.current = initialMessage;
       // Clear only the current mode's exchanges for new context
       onExchangesChange((prev) => prev.filter((ex) => ex.mode !== mode));
       sendMessage(initialMessage);
