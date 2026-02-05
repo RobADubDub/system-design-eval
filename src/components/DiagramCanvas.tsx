@@ -35,6 +35,7 @@ import {
   NotificationNode,
   SchedulerNode,
   ApiGatewayNode,
+  TextNode,
 } from './nodes';
 import { getComponentLabel, getComponentColor } from '@/lib/components/registry';
 import { EditingProvider, useEditing } from './nodes/EditingContext';
@@ -59,6 +60,7 @@ const nodeTypes = {
   notification: NotificationNode,
   scheduler: SchedulerNode,
   apiGateway: ApiGatewayNode,
+  text: TextNode,
 };
 
 // Default data for each node type - uses registry labels
@@ -78,6 +80,7 @@ const defaultNodeData: Record<CloudNodeType, CloudNodeData> = {
   notification: { label: getComponentLabel('notification') },
   scheduler: { label: getComponentLabel('scheduler') },
   apiGateway: { label: getComponentLabel('apiGateway') },
+  text: { label: getComponentLabel('text') },
 };
 
 // Sample initial diagram - generic system design focused
@@ -207,6 +210,10 @@ const DiagramCanvasInner = forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(f
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const isDragging = useRef(false);
   const { triggerEdit } = useEditing();
+  const clipboardRef = useRef<{
+    nodes: CloudNode[];
+    edges: DiagramEdge[];
+  } | null>(null);
 
   // Scroll detection for specification line visibility
   const [isScrolling, setIsScrolling] = useState(false);
@@ -318,6 +325,57 @@ const DiagramCanvasInner = forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(f
     setNodes((nds) => [...nds, ...newNodes]);
   }, [selectedNodes, setNodes, getNextNodeId, onHistoryCommit]);
 
+  const handleCopy = useCallback(() => {
+    if (selectedNodes.length === 0) return;
+    const selectedIds = new Set(selectedNodes.map((node) => node.id));
+    const connectedEdges = edges.filter(
+      (edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target)
+    );
+    clipboardRef.current = {
+      nodes: selectedNodes.map((node) => ({
+        ...node,
+        selected: false,
+        data: { ...node.data },
+      })),
+      edges: connectedEdges.map((edge) => ({ ...edge })),
+    };
+  }, [selectedNodes, edges]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboardRef.current || clipboardRef.current.nodes.length === 0) {
+      return;
+    }
+
+    const offset = 40;
+    const idMap = new Map<string, string>();
+    const pastedNodes = clipboardRef.current.nodes.map((node) => {
+      const newId = getNextNodeId();
+      idMap.set(node.id, newId);
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + offset,
+          y: node.position.y + offset,
+        },
+        selected: true,
+        data: { ...node.data },
+      };
+    });
+
+    const pastedEdges = clipboardRef.current.edges.map((edge) => ({
+      ...edge,
+      id: crypto.randomUUID(),
+      source: idMap.get(edge.source) ?? edge.source,
+      target: idMap.get(edge.target) ?? edge.target,
+      selected: false,
+    }));
+
+    onHistoryCommit?.();
+    setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), ...pastedNodes]);
+    setEdges((eds) => [...eds, ...pastedEdges]);
+  }, [getNextNodeId, onHistoryCommit, setNodes, setEdges]);
+
   // Keyboard event handler
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -341,13 +399,25 @@ const DiagramCanvasInner = forwardRef<DiagramCanvasHandle, DiagramCanvasProps>(f
         handleDuplicate();
       }
 
+      // Ctrl/Cmd + C - copy selection
+      if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+        event.preventDefault();
+        handleCopy();
+      }
+
+      // Ctrl/Cmd + V - paste selection
+      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+        event.preventDefault();
+        handlePaste();
+      }
+
       // Enter - trigger inline label editing for selected node
       if (event.key === 'Enter' && selectedNodes.length === 1) {
         event.preventDefault();
         triggerEdit(selectedNodes[0].id);
       }
     },
-    [handleDelete, handleDuplicate, selectedNodes, triggerEdit]
+    [handleDelete, handleDuplicate, handleCopy, handlePaste, selectedNodes, triggerEdit]
   );
 
   // Context menu handlers

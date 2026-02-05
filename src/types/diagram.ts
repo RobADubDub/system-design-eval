@@ -179,6 +179,14 @@ export interface ApiGatewayData extends BaseNodeData {
   authentication?: 'jwt' | 'api-key' | 'oauth' | 'none';
 }
 
+export type TextFontSize = 'sm' | 'md' | 'lg';
+
+export interface TextData extends BaseNodeData {
+  items?: SpecItem[];
+  collapsed?: boolean;
+  fontSize?: TextFontSize;
+}
+
 // Union type for all node data
 export type CloudNodeData =
   | LoadBalancerData
@@ -195,7 +203,8 @@ export type CloudNodeData =
   | WorkflowData
   | NotificationData
   | SchedulerData
-  | ApiGatewayData;
+  | ApiGatewayData
+  | TextData;
 
 // Node type identifiers
 export type CloudNodeType =
@@ -213,7 +222,8 @@ export type CloudNodeType =
   | 'workflow'
   | 'notification'
   | 'scheduler'
-  | 'apiGateway';
+  | 'apiGateway'
+  | 'text';
 
 // Typed node
 export type CloudNode = Node<CloudNodeData, CloudNodeType>;

@@ -7,6 +7,7 @@ interface SpecificationEditorProps {
   items: SpecItem[];
   onUpdate: (items: SpecItem[]) => void;
   onClose: () => void;
+  textClassName?: string; // Override text size class (default: 'text-sm')
 }
 
 interface FlatItem {
@@ -73,7 +74,7 @@ function isOnlyRootItem(items: SpecItem[], path: number[]): boolean {
   return location !== null && location.parent.length === 1 && path.length === 1;
 }
 
-export function SpecificationEditor({ items, onUpdate, onClose }: SpecificationEditorProps) {
+export function SpecificationEditor({ items, onUpdate, onClose, textClassName = 'text-sm' }: SpecificationEditorProps) {
   const [focusedPath, setFocusedPath] = useState<number[]>([0]);
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -356,7 +357,7 @@ export function SpecificationEditor({ items, onUpdate, onClose }: SpecificationE
         className="flex items-center"
         style={{ paddingLeft: flatItem.depth * 16 }}
       >
-        <span className="text-gray-400 mr-1 text-sm select-none">•</span>
+        <span className={`text-gray-400 mr-1 ${textClassName} select-none`}>•</span>
         <input
           ref={(el) => {
             if (el) inputRefs.current.set(key, el);
@@ -366,7 +367,7 @@ export function SpecificationEditor({ items, onUpdate, onClose }: SpecificationE
           onChange={(e) => updateItemText(flatItem.path, e.target.value)}
           onKeyDown={(e) => handleKeyDown(e, flatItem.path, flatItem.item.text)}
           onFocus={() => setFocusedPath(flatItem.path)}
-          className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 py-0.5 px-1 focus:bg-gray-50 rounded"
+          className={`flex-1 bg-transparent border-none outline-none ${textClassName} text-gray-700 py-0.5 px-1 focus:bg-gray-50 rounded`}
           placeholder="Enter text..."
         />
       </div>

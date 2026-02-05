@@ -62,3 +62,7 @@ body {
 .react-flow__node > div > .absolute {
   z-index: 1000;
 }
+
+.react-flow__node:hover {
+  z-index: 10000 !important;
+}

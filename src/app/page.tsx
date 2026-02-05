@@ -5,7 +5,7 @@ import { useNodesState, useEdgesState, OnSelectionChangeParams } from '@xyflow/r
 import { LeftPanel, LeftPanelTab } from '@/components/LeftPanel';
 import { DiagramCanvas, DiagramCanvasHandle, initialNodes, initialEdges } from '@/components/DiagramCanvas';
 import { NodePropertiesPanel } from '@/components/NodePropertiesPanel';
-import { AIChatPanel, AIChatMode, NotesContext, ChatExchange } from '@/components/ai/AIChatPanel';
+import { AIChatPanel, AIChatMode, NotesContext, ChatExchange, InitialMessage } from '@/components/ai/AIChatPanel';
 import { FlowSimulator } from '@/components/FlowSimulator';
 import { CloudNode, DiagramEdge, CloudNodeData, DiagramState, DiagramNotes, NodeSpecification, DEFAULT_NOTES_SECTIONS, createEmptySpecification } from '@/types/diagram';
 import { ProblemTemplate } from '@/types/notesAssist';
@@ -234,7 +234,7 @@ function HomeContent() {
   // AI Assistant mode state
   const [aiChatMode, setAiChatMode] = useState<AIChatMode>('design');
   const [aiNotesContext, setAiNotesContext] = useState<NotesContext | undefined>(undefined);
-  const [aiInitialMessage, setAiInitialMessage] = useState<string | undefined>(undefined);
+  const [aiInitialMessage, setAiInitialMessage] = useState<InitialMessage | undefined>(undefined);
   const [aiExchanges, setAiExchanges] = useState<ChatExchange[]>([]);
 
   // Keyboard shortcuts for notes panel
@@ -450,7 +450,10 @@ function HomeContent() {
       sectionContent,
       problemStatement,
     });
-    setAiInitialMessage(`Give me a hint for the "${sectionTitle}" section. Start with general guidance, and I'll ask for more specific help if needed.`);
+    setAiInitialMessage({
+      id: `hint-${sectionId}-${Date.now()}`,
+      text: `Give me a hint for the "${sectionTitle}" section. Start with general guidance, and I'll ask for more specific help if needed.`,
+    });
     setRightPanel('ai');
   }, [notes.sections, getProblemStatement]);
 
@@ -467,7 +470,10 @@ function HomeContent() {
       sectionContent,
       problemStatement,
     });
-    setAiInitialMessage(`Please review my "${sectionTitle}" notes and give me feedback. What have I covered well? What am I missing? Any suggestions for improvement?`);
+    setAiInitialMessage({
+      id: `check-${sectionId}-${Date.now()}`,
+      text: `Please review my "${sectionTitle}" notes and give me feedback. What have I covered well? What am I missing? Any suggestions for improvement?`,
+    });
     setRightPanel('ai');
   }, [notes.sections, getProblemStatement]);
 

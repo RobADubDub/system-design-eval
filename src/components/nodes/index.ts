@@ -13,3 +13,4 @@ export { WorkflowNode } from './WorkflowNode';
 export { NotificationNode } from './NotificationNode';
 export { SchedulerNode } from './SchedulerNode';
 export { ApiGatewayNode } from './ApiGatewayNode';
+export { TextNode } from './TextNode';

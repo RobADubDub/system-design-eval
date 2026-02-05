@@ -92,8 +92,22 @@ export function BaseNode({
   return (
     <div
       className="relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        setNodes((nodes) =>
+          nodes.map((node) =>
+            node.id === id ? { ...node, zIndex: 1000 } : node
+          )
+        );
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setNodes((nodes) =>
+          nodes.map((node) =>
+            node.id === id ? { ...node, zIndex: 0 } : node
+          )
+        );
+      }}
     >
       {/* Main node body */}
       <div
@@ -134,7 +148,7 @@ export function BaseNode({
       {showDetails && hasDetails && (
         <div
           className={`
-            absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50
+            details-popover absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50
             bg-white border border-gray-200 rounded shadow-lg px-2 py-1.5
             min-w-[140px] max-w-[220px]
             animate-in fade-in slide-in-from-top-1 duration-200

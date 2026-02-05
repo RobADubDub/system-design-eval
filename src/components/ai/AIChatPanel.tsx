@@ -37,6 +37,11 @@ export interface NotesContext {
   problemStatement: string;
 }
 
+export interface InitialMessage {
+  id: string;
+  text: string;
+}
+
 // Quick action template type
 interface QuickActionTemplate {
   label: string;
@@ -110,7 +115,7 @@ interface AIChatPanelProps {
   mode: AIChatMode;
   onModeChange?: (mode: AIChatMode) => void;
   notesContext?: NotesContext;
-  initialMessage?: string;
+  initialMessage?: InitialMessage;
   onInitialMessageSent?: () => void;
   // Lifted state for persistence across panel close/open
   exchanges: ChatExchange[];
@@ -138,7 +143,6 @@ export function AIChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prevModeRef = useRef<AIChatMode>(mode);
-  const initialMessageSentRef = useRef(false);
   const lastInitialMessageRef = useRef<string | undefined>(undefined);
 
   // Serialize diagram context for design mode
@@ -152,7 +156,6 @@ export function AIChatPanel({
   // Track mode changes (but don't clear conversation - user can do that manually)
   useEffect(() => {
     if (prevModeRef.current !== mode) {
-      initialMessageSentRef.current = false;
       lastInitialMessageRef.current = undefined;
       prevModeRef.current = mode;
     }
@@ -161,18 +164,18 @@ export function AIChatPanel({
   // Handle initial message (e.g., from "Get Hint" button)
   // This clears the current mode's conversation and starts fresh with the new context
   useEffect(() => {
-    if (
-      initialMessage &&
-      !isLoading &&
-      (initialMessage !== lastInitialMessageRef.current || !initialMessageSentRef.current)
-    ) {
-      initialMessageSentRef.current = true;
-      lastInitialMessageRef.current = initialMessage;
+    if (!initialMessage || isLoading) {
+      return;
+    }
+    if (initialMessage.id === lastInitialMessageRef.current) {
+      return;
+    }
+    lastInitialMessageRef.current = initialMessage.id;
       // Clear only the current mode's exchanges for new context
       onExchangesChange((prev) => prev.filter((ex) => ex.mode !== mode));
-      sendMessage(initialMessage);
+      sendMessage(initialMessage.text);
       onInitialMessageSent?.();
-    }
+    return;
   }, [initialMessage, isLoading, mode]);
 
   // Auto-scroll to bottom when new content arrives
@@ -279,6 +282,29 @@ export function AIChatPanel({
         } catch {
           // JSON not complete yet, continue accumulating
         }
+      }
+
+      if (!accumulatedText.trim()) {
+        const emptyResponse = mode === 'design'
+          ? {
+              insights: [{
+                nodeId: null,
+                component: 'No response',
+                category: 'Error',
+                details: 'No response was generated. Please try again.',
+              }],
+              isLoading: false,
+            }
+          : {
+              textResponse: 'No response was generated. Please try again.',
+              isLoading: false,
+            };
+        onExchangesChange((prev) =>
+          prev.map((ex) =>
+            ex.id === exchangeId ? { ...ex, ...emptyResponse } : ex
+          )
+        );
+        return;
       }
 
       // Final parse
