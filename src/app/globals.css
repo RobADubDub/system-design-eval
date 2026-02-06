@@ -19,10 +19,6 @@ body {
 }
 
 /* React Flow overrides */
-.react-flow__node {
-  /* Ensure hover panels are visible above other nodes */
-}
-
 .react-flow__handle {
   opacity: 0;
   transition: opacity 0.2s;

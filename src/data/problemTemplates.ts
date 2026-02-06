@@ -163,7 +163,3 @@ export function getTemplatesByCategory(): Map<string, ProblemTemplate[]> {
   return byCategory;
 }
 
-// Find a template by ID
-export function findTemplateById(id: string): ProblemTemplate | undefined {
-  return PROBLEM_TEMPLATES.find(t => t.id === id);
-}

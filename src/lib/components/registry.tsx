@@ -2,7 +2,7 @@ import React from 'react';
 import { CloudNodeType } from '@/types/diagram';
 
 // Field definition for node properties
-export interface PropertyField {
+interface PropertyField {
   key: string;
   label: string;
   type: 'text' | 'number' | 'select';
@@ -10,7 +10,7 @@ export interface PropertyField {
 }
 
 // Complete metadata for a component type
-export interface ComponentMeta {
+interface ComponentMeta {
   type: CloudNodeType;
   label: string;
   color: string;
@@ -277,6 +277,7 @@ export const COMPONENT_REGISTRY: Record<CloudNodeType, ComponentMeta> = {
 
 // Ordered list for palette display
 export const PALETTE_ORDER: CloudNodeType[] = [
+  'text',
   'client',
   'apiGateway',
   'loadBalancer',
@@ -292,7 +293,6 @@ export const PALETTE_ORDER: CloudNodeType[] = [
   'workflow',
   'scheduler',
   'notification',
-  'text',
 ];
 
 // Helper to get label for a node type
@@ -303,11 +303,6 @@ export function getComponentLabel(type: CloudNodeType): string {
 // Helper to get color for a node type
 export function getComponentColor(type: CloudNodeType): string {
   return COMPONENT_REGISTRY[type]?.color ?? '#6b7280';
-}
-
-// Helper to get icon for a node type
-export function getComponentIcon(type: CloudNodeType): React.ReactNode {
-  return COMPONENT_REGISTRY[type]?.icon ?? null;
 }
 
 // Helper to get properties for a node type

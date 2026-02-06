@@ -92,7 +92,7 @@ export const NODE_DIMENSIONS = {
 } as const;
 
 // Base data that all nodes share
-export interface BaseNodeData {
+interface BaseNodeData {
   label: string;
   description?: string; // What this component does / its role in the system
   notes?: string;       // Additional notes, constraints, considerations
@@ -290,9 +290,3 @@ export interface FlowStep {
   duration: number; // milliseconds
 }
 
-export interface FlowSimulation {
-  id: string;
-  name: string;
-  description: string;
-  steps: FlowStep[];
-}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, MouseEvent, KeyboardEvent } from 'react';
 import { NodeProps, useReactFlow } from '@xyflow/react';
-import { TextData, TextFontSize, SpecItem, generateSpecItemId } from '@/types/diagram';
+import { TextData, TextFontSize, SpecItem } from '@/types/diagram';
 import { SpecificationEditor } from '../specifications/SpecificationEditor';
 
 const TEXT_SIZE_CLASS: Record<TextFontSize, string> = {

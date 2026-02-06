@@ -1,7 +1,7 @@
 import { CloudNode, DiagramEdge, FlowStep, DiagramNotes } from '@/types/diagram';
 import { serializeDiagramForFlow, serializeNotesForAI } from './diagramSerializer';
 
-export interface FlowGenerationResult {
+interface FlowGenerationResult {
   success: boolean;
   steps?: FlowStep[];
   ambiguous?: boolean;

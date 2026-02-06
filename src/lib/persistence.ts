@@ -282,7 +282,7 @@ export function updateSavedDiagram(
 /**
  * Serialize diagram to JSON string (strips default values)
  */
-export function serializeDiagram(diagram: SavedDiagram): string {
+function serializeDiagram(diagram: SavedDiagram): string {
   const cleaned = cleanDiagramForSave(diagram);
   return JSON.stringify(cleaned, null, 2);
 }
@@ -290,7 +290,7 @@ export function serializeDiagram(diagram: SavedDiagram): string {
 /**
  * Parse JSON string to diagram (restores default values)
  */
-export function parseDiagram(json: string): SavedDiagram {
+function parseDiagram(json: string): SavedDiagram {
   const parsed = JSON.parse(json);
 
   // Validate required fields
@@ -404,7 +404,7 @@ export async function loadDiagramWithPicker(): Promise<SavedDiagram | null> {
 /**
  * Load diagram using traditional file input (works in all browsers)
  */
-export function loadDiagramWithInput(): Promise<SavedDiagram | null> {
+function loadDiagramWithInput(): Promise<SavedDiagram | null> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
