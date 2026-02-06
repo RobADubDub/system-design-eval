@@ -75,6 +75,20 @@ export function BenchmarkPanel({
 
   const canRun = problemStatement.length > 0 && nodes.length >= 3;
   const hasReference = !!referenceData?.referenceGraph?.nodes?.length;
+  const comparePayload = useMemo(
+    () => ({
+      profile,
+      referenceGraph: result?.referenceGraph || referenceData?.referenceGraph,
+      insights: result?.insights || [],
+    }),
+    [profile, referenceData?.referenceGraph, result?.referenceGraph, result?.insights]
+  );
+
+  const resetComparisonState = () => {
+    setResult(null);
+    setShowDiff(false);
+    setShowScenarios(false);
+  };
 
   const executeBenchmarkCall = async (mode: 'reference' | 'compare', referenceGraph?: ReferenceGraph) => {
     const response = await fetch('/api/ai/benchmark', {
@@ -106,9 +120,7 @@ export function BenchmarkPanel({
     try {
       const generated = (await executeBenchmarkCall('reference')) as ReferenceGenerationResponse;
       setReferenceData(generated);
-      setResult(null);
-      setShowDiff(false);
-      setShowScenarios(false);
+      resetComparisonState();
     } catch (error) {
       setReferenceData(null);
       setResult(null);
@@ -205,7 +217,7 @@ export function BenchmarkPanel({
               onChange={(e) => {
                 setProfile(e.target.value as BenchmarkProfile);
                 setReferenceData(null);
-                setResult(null);
+                resetComparisonState();
               }}
               className="mt-1 w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white"
             >
@@ -259,11 +271,14 @@ export function BenchmarkPanel({
                 Reference ready: {referenceData?.referenceGraph.nodes.length} nodes, {referenceData?.referenceGraph.edges.length} edges.
               </p>
               <button
-                onClick={() => onOpenFullCompare({
-                  profile,
-                  referenceGraph: referenceData!.referenceGraph,
-                  insights: result?.insights || [],
-                })}
+                onClick={() => {
+                  if (!comparePayload.referenceGraph) return;
+                  onOpenFullCompare({
+                    profile: comparePayload.profile,
+                    referenceGraph: comparePayload.referenceGraph,
+                    insights: comparePayload.insights,
+                  });
+                }}
                 className="px-2 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
               >
                 Open compare view
@@ -351,11 +366,13 @@ export function BenchmarkPanel({
                     )}
                   </div>
                   <button
-                    onClick={() => onOpenFullCompare({
-                      profile,
-                      referenceGraph: result.referenceGraph,
-                      insights: result.insights,
-                    })}
+                    onClick={() =>
+                      onOpenFullCompare({
+                        profile: comparePayload.profile,
+                        referenceGraph: comparePayload.referenceGraph!,
+                        insights: comparePayload.insights,
+                      })
+                    }
                     className="px-3 py-1.5 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
                   >
                     Open Full Compare

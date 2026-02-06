@@ -1,7 +1,7 @@
 'use client';
 
 import ELK from 'elkjs/lib/elk.bundled.js';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Background, BackgroundVariant, Controls, ReactFlow, ReactFlowProvider } from '@xyflow/react';
 import { BenchmarkInsight, BenchmarkProfile, InsightFacet, InsightStatus, ReferenceGraph } from '@/types/benchmark';
 import { CloudNode, CloudNodeType, DiagramEdge } from '@/types/diagram';
@@ -66,6 +66,10 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [elkGraph, setElkGraph] = useState<ReferenceGraph | null>(null);
   const [isLayouting, setIsLayouting] = useState(false);
+  const clearHoverState = useCallback(() => {
+    setHoveredNodeId(null);
+    setHoveredInsightId(null);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -96,6 +100,17 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
       isCancelled = true;
     };
   }, [referenceGraph]);
+
+  useEffect(() => {
+    const handleWindowMouseOut = (event: MouseEvent) => {
+      if (!event.relatedTarget) {
+        clearHoverState();
+      }
+    };
+
+    window.addEventListener('mouseout', handleWindowMouseOut);
+    return () => window.removeEventListener('mouseout', handleWindowMouseOut);
+  }, [clearHoverState]);
 
   const filteredInsights = useMemo(
     () => insights.filter((insight) => activeFacet === 'all' || insight.facet === activeFacet),
@@ -197,7 +212,10 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_420px]">
+      <div
+        className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_420px]"
+        onMouseLeave={clearHoverState}
+      >
         <section className="border-r border-gray-200 bg-gray-50 min-h-0 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-200 bg-white">
             <h3 className="text-sm font-medium text-gray-800">Reference Design</h3>
@@ -227,6 +245,7 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
                     nodesConnectable={false}
                     onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
                     onNodeMouseLeave={() => setHoveredNodeId(null)}
+                    onPaneMouseLeave={clearHoverState}
                   >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
                     <Controls showInteractive={false} />

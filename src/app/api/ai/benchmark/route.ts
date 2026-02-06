@@ -128,6 +128,7 @@ const REQUIRED_SCENARIOS: Array<'normal' | 'spike_10x' | 'service_failure' | 'qu
   'queue_backlog',
   'region_degradation',
 ];
+const GENERAL_FOCUS = 'general';
 
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -137,6 +138,77 @@ function clampScore(value: number): number {
 function ensureNonNegative(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Number(value.toFixed(2)));
+}
+
+function jsonResponse(data: unknown, status: number = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function normalizeScenarioMetric(metric: z.infer<typeof ScenarioMetricSchema>) {
+  return {
+    ...metric,
+    user: {
+      p95Ms: ensureNonNegative(metric.user.p95Ms),
+      errorRatePct: ensureNonNegative(metric.user.errorRatePct),
+      recoveryMin: ensureNonNegative(metric.user.recoveryMin),
+      opsBurden: ensureNonNegative(metric.user.opsBurden),
+    },
+    reference: {
+      p95Ms: ensureNonNegative(metric.reference.p95Ms),
+      errorRatePct: ensureNonNegative(metric.reference.errorRatePct),
+      recoveryMin: ensureNonNegative(metric.reference.recoveryMin),
+      opsBurden: ensureNonNegative(metric.reference.opsBurden),
+    },
+  };
+}
+
+function buildScenarioMetrics(scenarios: z.infer<typeof ScenarioMetricSchema>[]) {
+  const scenarioByName = new Map(
+    scenarios.map((metric) => [metric.scenario, metric] as const)
+  );
+
+  return REQUIRED_SCENARIOS.map((scenario) => {
+    const metric = scenarioByName.get(scenario);
+    if (!metric) {
+      return {
+        scenario,
+        user: { p95Ms: 0, errorRatePct: 0, recoveryMin: 0, opsBurden: 0 },
+        reference: { p95Ms: 0, errorRatePct: 0, recoveryMin: 0, opsBurden: 0 },
+      };
+    }
+    return normalizeScenarioMetric(metric);
+  });
+}
+
+function normalizeDecisions(decisions: z.infer<typeof DecisionSchema>[]) {
+  return decisions.slice(0, 5).map((decision) => {
+    const safeUpgradePath = decision.upgradePath
+      .map((step) => step.trim())
+      .filter(Boolean)
+      .slice(0, 4);
+    return {
+      ...decision,
+      upgradePath: safeUpgradePath.length > 0
+        ? safeUpgradePath
+        : ['Define one concrete mitigation step.', 'Validate impact with a benchmark rerun.'],
+    };
+  });
+}
+
+function sanitizeInsights(
+  insights: z.infer<typeof InsightSchema>[],
+  validReferenceNodeIds: Set<string>
+) {
+  return insights
+    .map((insight) => ({
+      ...insight,
+      referenceNodeIds: insight.referenceNodeIds.filter((id) => validReferenceNodeIds.has(id)),
+    }))
+    .filter((insight) => insight.referenceNodeIds.length > 0)
+    .slice(0, 24);
 }
 
 function getUserTopology(request: BenchmarkRequest): BenchmarkTopologySummary {
@@ -229,7 +301,7 @@ function buildReferencePrompt(request: BenchmarkRequest): string {
     'Use realistic cloud/distributed components and include operationally relevant facets on nodes.',
     '',
     `Profile: ${request.profile}`,
-    `Focus area: ${request.focusArea || 'general'}`,
+    `Focus area: ${request.focusArea || GENERAL_FOCUS}`,
     '',
     'Problem statement:',
     problemStatement || '(No problem statement provided)',
@@ -257,7 +329,7 @@ function buildComparePrompt(
     'Compare the user design against the selected reference architecture.',
     '',
     `Profile: ${request.profile}`,
-    `Focus area: ${request.focusArea || 'general'}`,
+    `Focus area: ${request.focusArea || GENERAL_FOCUS}`,
     '',
     'Scoring guidance:',
     '- Higher is better for functional/scalability/reliability/operability/costEfficiency.',
@@ -299,29 +371,20 @@ function parseBenchmarkRequest(body: unknown): BenchmarkRequest | null {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { mode, model } = body as { mode?: 'reference' | 'compare'; model?: string };
+    const { mode, model } = body as { mode?: 'reference' | 'compare'; model?: string; referenceGraph?: unknown };
     const modelId = model || DEFAULT_MODEL;
 
     if (!mode || !['reference', 'compare'].includes(mode)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid mode. Use "reference" or "compare".' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Invalid mode. Use "reference" or "compare".' }, 400);
     }
 
     const request = parseBenchmarkRequest(body);
     if (!request) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid benchmark request payload' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Invalid benchmark request payload' }, 400);
     }
 
     if (request.diagram.nodes.length < 3) {
-      return new Response(
-        JSON.stringify({ error: 'At least 3 nodes are required for benchmark comparison.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'At least 3 nodes are required for benchmark comparison.' }, 400);
     }
 
     if (mode === 'reference') {
@@ -330,7 +393,7 @@ export async function POST(req: Request) {
         mode,
         modelId,
         profile: request.profile,
-        focusArea: request.focusArea || 'general',
+        focusArea: request.focusArea || GENERAL_FOCUS,
         promptLength: prompt.length,
       });
 
@@ -353,23 +416,17 @@ export async function POST(req: Request) {
         edges: referenceGraph.edges.length,
       }, startTime);
 
-      return new Response(
-        JSON.stringify({
-          profile: request.profile,
-          summary: object.summary,
-          referenceGraph,
-        }),
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({
+        profile: request.profile,
+        summary: object.summary,
+        referenceGraph,
+      });
     }
 
     // compare mode
     const referenceGraphRaw = body.referenceGraph;
     if (!referenceGraphRaw) {
-      return new Response(
-        JSON.stringify({ error: 'referenceGraph is required for compare mode.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'referenceGraph is required for compare mode.' }, 400);
     }
 
     const referenceGraph = sanitizeReferenceGraph(referenceGraphRaw);
@@ -382,7 +439,7 @@ export async function POST(req: Request) {
       mode,
       modelId,
       profile: request.profile,
-      focusArea: request.focusArea || 'general',
+      focusArea: request.focusArea || GENERAL_FOCUS,
       promptLength: prompt.length,
       referenceNodes: referenceGraph.nodes.length,
       referenceEdges: referenceGraph.edges.length,
@@ -395,56 +452,9 @@ export async function POST(req: Request) {
       maxOutputTokens: 8192,
     });
 
-    const insights = object.insights
-      .map((insight) => ({
-        ...insight,
-        referenceNodeIds: insight.referenceNodeIds.filter((id) => validReferenceNodeIds.has(id)),
-      }))
-      .filter((insight) => insight.referenceNodeIds.length > 0)
-      .slice(0, 24);
-
-    const scenarioByName = new Map(
-      object.scenarioMetrics.map((metric) => [metric.scenario, metric] as const)
-    );
-
-    const scenarioMetrics = REQUIRED_SCENARIOS.map((scenario) => {
-      const metric = scenarioByName.get(scenario);
-      if (!metric) {
-        return {
-          scenario,
-          user: { p95Ms: 0, errorRatePct: 0, recoveryMin: 0, opsBurden: 0 },
-          reference: { p95Ms: 0, errorRatePct: 0, recoveryMin: 0, opsBurden: 0 },
-        };
-      }
-      return {
-        ...metric,
-        user: {
-          p95Ms: ensureNonNegative(metric.user.p95Ms),
-          errorRatePct: ensureNonNegative(metric.user.errorRatePct),
-          recoveryMin: ensureNonNegative(metric.user.recoveryMin),
-          opsBurden: ensureNonNegative(metric.user.opsBurden),
-        },
-        reference: {
-          p95Ms: ensureNonNegative(metric.reference.p95Ms),
-          errorRatePct: ensureNonNegative(metric.reference.errorRatePct),
-          recoveryMin: ensureNonNegative(metric.reference.recoveryMin),
-          opsBurden: ensureNonNegative(metric.reference.opsBurden),
-        },
-      };
-    });
-
-    const decisions = object.decisions.slice(0, 5).map((decision) => {
-      const safeUpgradePath = decision.upgradePath
-        .map((step) => step.trim())
-        .filter(Boolean)
-        .slice(0, 4);
-      return {
-        ...decision,
-        upgradePath: safeUpgradePath.length > 0
-          ? safeUpgradePath
-          : ['Define one concrete mitigation step.', 'Validate impact with a benchmark rerun.'],
-      };
-    });
+    const insights = sanitizeInsights(object.insights, validReferenceNodeIds);
+    const scenarioMetrics = buildScenarioMetrics(object.scenarioMetrics);
+    const decisions = normalizeDecisions(object.decisions);
 
     const result = {
       analysisSource: 'llm' as const,
@@ -476,14 +486,9 @@ export async function POST(req: Request) {
       insights: result.insights.length,
     }, startTime);
 
-    return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(result);
   } catch (error) {
     console.error('Benchmark API error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to process benchmark request' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return jsonResponse({ error: 'Failed to process benchmark request' }, 500);
   }
 }
