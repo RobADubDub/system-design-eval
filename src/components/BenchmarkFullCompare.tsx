@@ -150,7 +150,6 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
       positionedGraph.nodes.map((node) => {
         const primaryFacet = Object.values(node.facets)[0] || 'Reference architecture component.';
         const isHighlighted = highlightedNodeIds.has(node.id);
-        const dimmed = highlightedNodeIds.size > 0 && !isHighlighted;
         return {
           id: node.id,
           type: node.type as CloudNodeType,
@@ -165,7 +164,6 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
           draggable: false,
           selectable: false,
           connectable: false,
-          style: dimmed ? { opacity: 0.35 } : { opacity: 1 },
         };
       }),
     [positionedGraph.nodes, highlightedNodeIds]
@@ -178,10 +176,8 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
           ? edge.source === hoveredNodeId || edge.target === hoveredNodeId
           : false;
 
-        const style = hoveredNodeId
-          ? connected
-            ? { stroke: '#2563eb', strokeWidth: 2.8 }
-            : { stroke: '#cbd5e1', strokeWidth: 1.2, opacity: 0.35 }
+        const style = hoveredNodeId && connected
+          ? { stroke: '#2563eb', strokeWidth: 2.8 }
           : { stroke: '#cbd5e1', strokeWidth: 1.6 };
 
         return {
@@ -239,7 +235,10 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
                     minZoom={0.3}
                     maxZoom={1.8}
                     panOnDrag
-                    zoomOnScroll
+                    panOnScroll
+                    zoomOnScroll={false}
+                    zoomOnPinch
+                    zoomActivationKeyCode="Meta"
                     elementsSelectable={false}
                     nodesDraggable={false}
                     nodesConnectable={false}
