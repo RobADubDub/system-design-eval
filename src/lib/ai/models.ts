@@ -28,8 +28,8 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     costTier: 'medium',
   },
   {
-    id: 'claude-opus-4-5-20251101',
-    name: 'Claude Opus 4.5',
+    id: 'claude-opus-4-6',
+    name: 'Claude Opus 4.6',
     provider: 'anthropic',
     description: 'Maximum intelligence with practical performance',
     maxTokens: 8192,

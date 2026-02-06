@@ -222,31 +222,6 @@ export function FlowSimulator({
         </div>
       </div>
 
-      {/* Clarification dialog */}
-      {simulation.status === 'clarifying' && simulation.clarificationQuestion && (
-        <div className="p-3 bg-yellow-50 border-b border-yellow-100">
-          <p className="text-sm text-yellow-800 mb-2">
-            {simulation.clarificationQuestion}
-          </p>
-          <form onSubmit={handleClarification} className="flex gap-2">
-            <input
-              type="text"
-              value={clarificationInput}
-              onChange={(e) => setClarificationInput(e.target.value)}
-              placeholder="Your answer..."
-              className="flex-1 px-2 py-1 text-sm border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-            <button
-              type="submit"
-              disabled={!clarificationInput.trim()}
-              className="px-2 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
-            >
-              Answer
-            </button>
-          </form>
-        </div>
-      )}
-
       {/* Error display */}
       {simulation.error && (
         <div className="p-3 bg-red-50 border-b border-red-100 max-h-48 overflow-y-auto">
@@ -387,6 +362,31 @@ export function FlowSimulator({
           </div>
         )}
       </div>
+
+      {/* Clarification dialog - pinned at bottom */}
+      {simulation.status === 'clarifying' && simulation.clarificationQuestion && (
+        <div className="p-3 bg-yellow-50 border-t border-yellow-100">
+          <p className="text-sm text-yellow-800 mb-2">
+            {simulation.clarificationQuestion}
+          </p>
+          <form onSubmit={handleClarification} className="flex gap-2">
+            <input
+              type="text"
+              value={clarificationInput}
+              onChange={(e) => setClarificationInput(e.target.value)}
+              placeholder="Your answer..."
+              className="flex-1 px-2 py-1 text-sm border border-yellow-200 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            />
+            <button
+              type="submit"
+              disabled={!clarificationInput.trim()}
+              className="px-2 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
+            >
+              Answer
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Keyboard hints */}
       {simulation.steps.length > 0 && (

@@ -68,7 +68,7 @@ For each step, provide:
 3. A brief description of what happens at this step
 4. An estimated duration in milliseconds (realistic estimates)
 
-If the flow is ambiguous (e.g., multiple paths possible), ask a clarifying question instead of guessing.
+IMPORTANT: Always prefer making reasonable assumptions over asking clarifying questions. If the flow path is not 100% obvious, pick the most likely path and note your assumption in the step description (e.g., "Assuming cache-aside pattern, checks cache first"). Only ask a clarifying question if the scenario is fundamentally impossible to trace through the diagram (e.g., the required components don't exist at all).
 
 Output as JSON in this format:
 {
@@ -80,10 +80,10 @@ Output as JSON in this format:
   ]
 }
 
-Or if clarification needed:
+Or ONLY if the scenario truly cannot be traced:
 {
   "ambiguous": true,
-  "question": "Does the login flow check the cache first, or go directly to the auth service?"
+  "question": "The diagram has no authentication service — which component handles login?"
 }`;
 
 export function buildChatContext(
