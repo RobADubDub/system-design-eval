@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, ReactNode, KeyboardEvent } from 'react';
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { useEditing } from './EditingContext';
+import { createPortal } from 'react-dom';
 
 interface BaseNodeProps {
   id: string;
@@ -30,12 +31,14 @@ export function BaseNode({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { setNodes } = useReactFlow();
   const { editingNodeId, clearEditing } = useEditing();
 
   const showDetails = isHovered && !isEditing;
   const hasDetails = description || notes || children;
+  const popoverRect = showDetails && hasDetails ? containerRef.current?.getBoundingClientRect() : null;
 
   // Focus input when editing starts
   useEffect(() => {
@@ -91,6 +94,7 @@ export function BaseNode({
 
   return (
     <div
+      ref={containerRef}
       className="relative"
       onMouseEnter={() => {
         setIsHovered(true);
@@ -145,18 +149,26 @@ export function BaseNode({
       </div>
 
       {/* Expandable details panel */}
-      {showDetails && hasDetails && (
+      {showDetails && hasDetails && popoverRect && typeof document !== 'undefined' && createPortal(
         <div
           className={`
-            details-popover absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50
+            details-popover
             bg-white border border-gray-200 rounded shadow-lg px-2 py-1.5
             min-w-[140px] max-w-[220px]
             animate-in fade-in slide-in-from-top-1 duration-200
           `}
+          style={{
+            position: 'fixed',
+            left: popoverRect.left + popoverRect.width / 2,
+            top: popoverRect.bottom + 4,
+            transform: 'translateX(-50%)',
+            zIndex: 20000,
+            pointerEvents: 'none',
+          }}
         >
           {/* Description - primary info about what this component does */}
           {description && (
-            <p className="text-[10px] text-gray-700 leading-tight">{description}</p>
+            <p className="text-[11px] text-gray-700 leading-tight">{description}</p>
           )}
 
           {/* Technical details - optional, only shown if provided */}
@@ -169,11 +181,12 @@ export function BaseNode({
           {/* Notes - additional considerations */}
           {notes && (
             <div className="mt-1 pt-1 border-t border-gray-100">
-              <span className="text-[9px] uppercase tracking-wide font-medium text-gray-400">Notes</span>
-              <p className="text-[10px] text-gray-600 leading-tight">{notes}</p>
+              <span className="text-[10px] uppercase tracking-wide font-medium text-gray-400">Notes</span>
+              <p className="text-[11px] text-gray-600 leading-tight">{notes}</p>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Connection handles - all 4 sides, bidirectional (overlapping source+target) */}
