@@ -7,16 +7,19 @@ import { DiagramCanvas, DiagramCanvasHandle, initialNodes, initialEdges } from '
 import { NodePropertiesPanel } from '@/components/NodePropertiesPanel';
 import { AIChatPanel, AIChatMode, NotesContext, ChatExchange, InitialMessage } from '@/components/ai/AIChatPanel';
 import { FlowSimulator } from '@/components/FlowSimulator';
+import { BenchmarkPanel } from '@/components/BenchmarkPanel';
+import { BenchmarkFullCompare } from '@/components/BenchmarkFullCompare';
+import { BenchmarkInsight, BenchmarkProfile, ReferenceGraph } from '@/types/benchmark';
 import { CloudNode, DiagramEdge, CloudNodeData, DiagramState, DiagramNotes, NodeSpecification, DEFAULT_NOTES_SECTIONS, createEmptySpecification } from '@/types/diagram';
 import { ProblemTemplate } from '@/types/notesAssist';
 import { useDiagramPersistence } from '@/hooks/useDiagramPersistence';
-import { SettingsProvider, useSettings } from '@/components/settings/SettingsContext';
+import { SettingsProvider } from '@/components/settings/SettingsContext';
 import { ModelSelector } from '@/components/settings/ModelSelector';
 
-type RightPanelMode = 'none' | 'properties' | 'ai' | 'flow';
+type RightPanelMode = 'none' | 'properties' | 'ai' | 'flow' | 'benchmark';
 
 const MIN_PANEL_WIDTH = 280;
-const MAX_PANEL_WIDTH = 600;
+const MAX_PANEL_WIDTH = 960;
 const DEFAULT_PANEL_WIDTH = 320;
 const MIN_LEFT_PANEL_WIDTH = 200;
 const MAX_LEFT_PANEL_WIDTH = 400;
@@ -24,7 +27,6 @@ const DEFAULT_LEFT_PANEL_WIDTH = 224; // 14rem = 224px
 const MAX_HISTORY = 50;
 
 function HomeContent() {
-  const { settings } = useSettings();
   // Node ID counter
   const nodeIdCounter = useRef(
     Math.max(...initialNodes.map((n) => parseInt(n.id, 10)), 0) + 1
@@ -140,8 +142,8 @@ function HomeContent() {
   const [leftPanelTab, setLeftPanelTab] = useState<LeftPanelTab>('components');
 
   // Section refs for keyboard shortcut focus
-  const sectionRefs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(
-    new Map(DEFAULT_NOTES_SECTIONS.map(s => [s.id, createRef<HTMLDivElement>()]))
+  const [sectionRefs] = useState<Map<string, React.RefObject<HTMLDivElement | null>>>(
+    () => new Map(DEFAULT_NOTES_SECTIONS.map(s => [s.id, createRef<HTMLDivElement>()]))
   );
 
   // Handler for updating section content
@@ -236,6 +238,12 @@ function HomeContent() {
   const [aiNotesContext, setAiNotesContext] = useState<NotesContext | undefined>(undefined);
   const [aiInitialMessage, setAiInitialMessage] = useState<InitialMessage | undefined>(undefined);
   const [aiExchanges, setAiExchanges] = useState<ChatExchange[]>([]);
+  const [benchmarkCompareView, setBenchmarkCompareView] = useState<{
+    profile: BenchmarkProfile;
+    referenceGraph: ReferenceGraph;
+    insights: BenchmarkInsight[];
+  } | null>(null);
+  const [isFullCompareOpen, setIsFullCompareOpen] = useState(false);
 
   // Keyboard shortcuts for notes panel
   useEffect(() => {
@@ -276,7 +284,7 @@ function HomeContent() {
 
           // Focus on the section after a short delay for DOM update
           setTimeout(() => {
-            const ref = sectionRefs.current.get(sectionId);
+            const ref = sectionRefs.get(sectionId);
             if (ref?.current) {
               ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
               // Find and focus the textarea within the section
@@ -432,6 +440,14 @@ function HomeContent() {
     setActiveEdgeId(null);
   }, []);
 
+  const handleAppendToSection = useCallback((sectionId: string, content: string) => {
+    setNotes((prev) => ({
+      sections: prev.sections.map((s) =>
+        s.id === sectionId ? { ...s, content: `${s.content}${content}`.trim() } : s
+      ),
+    }));
+  }, []);
+
   // Get problem statement helper
   const getProblemStatement = useCallback(() => {
     return notes.sections.find(s => s.id === 'problem')?.content?.trim() || '';
@@ -511,7 +527,20 @@ function HomeContent() {
   // Close right panel on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && rightPanel !== 'none') {
+      if (e.key !== 'Escape') return;
+
+      if (isFullCompareOpen) {
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        setIsFullCompareOpen(false);
+        return;
+      }
+
+      if (rightPanel !== 'none') {
         // Don't close if user is typing in an input
         if (
           e.target instanceof HTMLInputElement ||
@@ -525,7 +554,7 @@ function HomeContent() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [rightPanel, closeRightPanel]);
+  }, [rightPanel, closeRightPanel, isFullCompareOpen]);
 
   // Handle right panel resize
   const handleResizeStart = useCallback((e: MouseEvent) => {
@@ -670,6 +699,17 @@ function HomeContent() {
             >
               Simulate Flow
             </button>
+            <button
+              onClick={() => setRightPanel(rightPanel === 'benchmark' ? 'none' : 'benchmark')}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                rightPanel === 'benchmark'
+                  ? 'bg-amber-500 text-white'
+                  : 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+              }`}
+              title="Reference Benchmark"
+            >
+              Benchmark
+            </button>
           </div>
         </header>
 
@@ -689,7 +729,7 @@ function HomeContent() {
               onToggleNoteSection={handleToggleNoteSection}
               onExpandNoteSection={handleExpandNoteSection}
               onCollapseNoteSection={handleCollapseNoteSection}
-              sectionRefs={sectionRefs.current}
+              sectionRefs={sectionRefs}
               // AI Assist props
               canUseAssist={!!getProblemStatement()}
               onOpenAIForHint={handleOpenAIForHint}
@@ -771,6 +811,15 @@ function HomeContent() {
           />
         </div>
 
+        {isFullCompareOpen && benchmarkCompareView && (
+          <BenchmarkFullCompare
+            profile={benchmarkCompareView.profile}
+            referenceGraph={benchmarkCompareView.referenceGraph}
+            insights={benchmarkCompareView.insights}
+            onClose={() => setIsFullCompareOpen(false)}
+          />
+        )}
+
         {/* Right sidebar - Context-dependent with resize handle */}
         {rightPanel !== 'none' && (
           <div
@@ -821,6 +870,20 @@ function HomeContent() {
                 onActiveNodeChange={setActiveNodeId}
                 onActiveEdgeChange={setActiveEdgeId}
                 onClose={closeRightPanel}
+              />
+            )}
+
+            {rightPanel === 'benchmark' && (
+              <BenchmarkPanel
+                nodes={nodes}
+                edges={edges}
+                notes={notes}
+                onClose={closeRightPanel}
+                onOpenFullCompare={(payload) => {
+                  setBenchmarkCompareView(payload);
+                  setIsFullCompareOpen(true);
+                }}
+                onAppendToSection={handleAppendToSection}
               />
             )}
           </div>

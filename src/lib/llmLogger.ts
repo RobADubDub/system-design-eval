@@ -9,7 +9,7 @@
 
 interface LLMLogEntry {
   timestamp: string;
-  type: 'chat' | 'analyze' | 'flow' | 'notes-assist';
+  type: 'chat' | 'analyze' | 'flow' | 'notes-assist' | 'benchmark';
   direction: 'request' | 'response';
   durationMs?: number;
   data: Record<string, unknown>;

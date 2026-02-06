@@ -32,6 +32,7 @@ The following features have been identified as priorities for future implementat
 - Scores across dimensions: scalability, reliability, maintainability, cost
 - Comparison to "reference solutions" for each problem template
 - Track improvement over time across practice sessions
+- Detailed UI spec for benchmark mode: `docs/BENCHMARK_REFERENCE_ARCHITECTURES_UI_SPEC.md`
 
 #### B. Guided Interview Mode ⭐ PRIORITY
 - Timed practice sessions (45 min typical interview length)
