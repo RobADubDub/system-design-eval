@@ -96,6 +96,7 @@ const MODE_CONFIGS: Record<AIChatMode, ModeConfig> = {
       { label: 'Suggest improvements', base: 'What improvements would you suggest', focused: 'What improvements would you suggest for {components}' },
       { label: 'Check redundancy', base: 'Are there any single points of failure', focused: 'Are there any single points of failure related to {components}' },
       { label: 'Security review', base: 'What security concerns should I consider', focused: 'What security concerns should I consider for {components}' },
+      { label: 'What technology?', base: 'What specific technologies (e.g., databases, caches, message brokers) would you recommend for each component and why? Consider my requirements and the trade-offs vs alternatives', focused: 'What specific technology would you recommend for {components}? Consider my requirements, expected access patterns, and scale. Explain the trade-offs vs alternatives and when I would pick one over the other' },
     ],
     emptyState: {
       primary: 'Ask questions about your system design',
@@ -308,29 +309,42 @@ export function AIChatPanel({
       }
 
       // Final parse
+      let finalUpdate: Partial<ChatExchange> = { isLoading: false };
       try {
         const finalData = JSON.parse(accumulatedText);
 
-        if (mode === 'design' && finalData.insights) {
-          onExchangesChange((prev) =>
-            prev.map((ex) =>
-              ex.id === exchangeId
-                ? { ...ex, insights: finalData.insights, isLoading: false }
-                : ex
-            )
-          );
+        if (mode === 'design' && finalData.insights?.length > 0) {
+          finalUpdate.insights = finalData.insights;
         } else if (mode === 'notes' && finalData.response) {
-          onExchangesChange((prev) =>
-            prev.map((ex) =>
-              ex.id === exchangeId
-                ? { ...ex, textResponse: finalData.response, isLoading: false }
-                : ex
-            )
-          );
+          finalUpdate.textResponse = finalData.response;
         }
       } catch {
-        throw new Error('Failed to parse response');
+        // Stream ended with unparseable data — fall through to empty-response handling
       }
+
+      // If we got no usable content, show an error row/message
+      const hasContent = mode === 'design'
+        ? (finalUpdate.insights?.length ?? 0) > 0
+        : !!finalUpdate.textResponse;
+
+      if (!hasContent) {
+        if (mode === 'design') {
+          finalUpdate.insights = [{
+            nodeId: null,
+            component: 'General',
+            category: 'Error',
+            details: 'The AI was unable to generate a response. Try rephrasing or simplifying your question.',
+          }];
+        } else {
+          finalUpdate.textResponse = 'The AI was unable to generate a response. Try rephrasing or simplifying your question.';
+        }
+      }
+
+      onExchangesChange((prev) =>
+        prev.map((ex) =>
+          ex.id === exchangeId ? { ...ex, ...finalUpdate } : ex
+        )
+      );
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
         return;
