@@ -141,7 +141,7 @@ export function BaseNode({
           <span
             className="text-xs font-medium text-gray-700 max-w-[100px] truncate cursor-text"
             onDoubleClick={handleDoubleClick}
-            title="Double-click to edit"
+            title={label}
           >
             {label}
           </span>
@@ -166,6 +166,13 @@ export function BaseNode({
             pointerEvents: 'none',
           }}
         >
+          {/* Always show full component name for clipped labels */}
+          <div className="mb-1 pb-1 border-b border-gray-100">
+            <span className="text-[11px] font-semibold text-gray-700 leading-tight break-words">
+              {label}
+            </span>
+          </div>
+
           {/* Description - primary info about what this component does */}
           {description && (
             <p className="text-[11px] text-gray-700 leading-tight">{description}</p>
