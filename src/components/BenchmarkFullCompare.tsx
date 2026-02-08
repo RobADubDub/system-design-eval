@@ -158,6 +158,7 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
             label: node.label,
             description: primaryFacet,
             notes: `Type: ${node.type}`,
+            popoverPlacement: 'side',
             isActive: isHighlighted,
           },
           selected: isHighlighted,
@@ -209,7 +210,7 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
       </div>
 
       <div
-        className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(640px,1fr)_420px]"
+        className="flex-1 min-h-0 grid grid-cols-[1fr_420px]"
         onMouseLeave={clearHoverState}
       >
         <section className="border-r border-gray-200 bg-gray-50 min-h-0 flex flex-col">
@@ -224,7 +225,10 @@ export function BenchmarkFullCompare({ profile, referenceGraph, insights, onClos
           </div>
 
           <div className="flex-1 overflow-auto p-4">
-            <div className="h-[min(72vh,720px)] min-h-[420px] rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <div
+              className="h-[min(72vh,720px)] min-h-[420px] rounded-lg border border-gray-200 bg-white overflow-hidden"
+              data-reference-design-view="true"
+            >
               <EditingProvider>
                 <ReactFlowProvider>
                   <ReactFlow

@@ -158,9 +158,11 @@ RESPONSE STYLE:
 CONTEXT:
 You will be given:
 - The problem statement (what system is being designed)
-- The current section the user is working on
+- The current section the user is working on (with guidance on what belongs in that section)
 - The user's current notes for that section
 - Optionally, their other notes for context
+
+CRITICAL: Stay strictly within the scope of the current section. Do not bleed concerns from other sections. For example, do not discuss rate limits or SLAs in Functional Reqs, and do not discuss user-facing features in Non-Functional Reqs. If something the user wrote belongs in a different section, briefly note that and redirect.
 
 When providing hints, be progressive - start with guiding questions before revealing answers.
 When validating work, be specific about what's good and what's missing.`;
@@ -173,12 +175,26 @@ export interface NotesContextData {
   allNotes?: string;
 }
 
+// Section-specific guidance so the LLM stays in scope
+const SECTION_GUIDANCE: Record<string, string> = {
+  functional: 'This section covers FUNCTIONAL requirements only: core user-facing features, key use cases, and what the system must do. Do NOT discuss performance targets, SLAs, rate limits, size constraints, availability, or scalability here — those belong in Non-Functional Reqs.',
+  workflows: 'This section covers end-to-end workflows and user journeys: the step-by-step flow of how a user accomplishes key tasks through the system. Focus on sequencing, decision points, and interactions between actors.',
+  nonfunctional: 'This section covers NON-FUNCTIONAL requirements: performance targets, latency SLAs, throughput, availability, consistency guarantees, rate limits, size constraints, data retention, and scalability expectations. Do NOT discuss user-facing features here — those belong in Functional Reqs.',
+  entities: 'This section covers data modeling: core entities/tables, their attributes, relationships, and key access patterns. Focus on the data shape, not API contracts or user flows.',
+  apis: 'This section covers API design: endpoint definitions, request/response schemas, authentication, and contract boundaries between services. Focus on the interface, not internal implementation.',
+  deepdives: 'This section covers deep dives into specific technical challenges: scaling bottlenecks, consistency trade-offs, failure modes, caching strategies, and other areas that deserve detailed exploration.',
+};
+
 export function buildNotesContext(notesContext: NotesContextData): string {
   let context = `## Problem Statement\n${notesContext.problemStatement || '(Not provided)'}\n\n`;
 
   // Only show section context if it's not a general question
   if (notesContext.sectionId !== 'general' && notesContext.sectionTitle !== 'General') {
     context += `## Current Section: ${notesContext.sectionTitle}\n`;
+    const guidance = SECTION_GUIDANCE[notesContext.sectionId];
+    if (guidance) {
+      context += `SCOPE: ${guidance}\n\n`;
+    }
     context += `User's current notes:\n${notesContext.sectionContent || '(Empty - user hasn\'t written anything yet)'}\n`;
   }
 

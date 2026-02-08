@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode, KeyboardEvent } from 'react';
+import { CSSProperties, useState, useRef, useEffect, ReactNode, KeyboardEvent } from 'react';
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import { useEditing } from './EditingContext';
 import { createPortal } from 'react-dom';
@@ -13,6 +13,7 @@ interface BaseNodeProps {
   selected?: boolean;
   description?: string;
   notes?: string;
+  popoverPlacement?: 'default' | 'side';
   children?: ReactNode; // Optional technical details
   isActive?: boolean; // For flow simulation highlighting
 }
@@ -25,12 +26,14 @@ export function BaseNode({
   selected,
   description,
   notes,
+  popoverPlacement = 'default',
   children,
   isActive,
 }: BaseNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { setNodes } = useReactFlow();
@@ -38,7 +41,59 @@ export function BaseNode({
 
   const showDetails = isHovered && !isEditing;
   const hasDetails = description || notes || children;
-  const popoverRect = showDetails && hasDetails ? containerRef.current?.getBoundingClientRect() : null;
+  const computePopoverStyle = (rect: DOMRect): CSSProperties => {
+    if (popoverPlacement !== 'side') {
+      return {
+        position: 'fixed',
+        left: rect.left + rect.width / 2,
+        top: rect.bottom + 4,
+        transform: 'translateX(-50%)',
+        zIndex: 20000,
+        pointerEvents: 'none',
+      };
+    }
+
+    // In reference view, prefer side placement to avoid obscuring vertical connections.
+    const sideOffset = 10;
+    const widthGuess = 220;
+    const canPlaceRight = rect.right + sideOffset + widthGuess < window.innerWidth - 8;
+
+    if (canPlaceRight) {
+      return {
+        position: 'fixed',
+        left: rect.right + sideOffset,
+        top: rect.top + rect.height / 2,
+        transform: 'translateY(-50%)',
+        zIndex: 20000,
+        pointerEvents: 'none',
+      };
+    }
+
+    return {
+      position: 'fixed',
+      left: rect.left - sideOffset,
+      top: rect.top + rect.height / 2,
+      transform: 'translate(-100%, -50%)',
+      zIndex: 20000,
+      pointerEvents: 'none',
+    };
+  };
+
+  useEffect(() => {
+    if (!showDetails || !hasDetails) return;
+    const handleReposition = () => {
+      const element = containerRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      setPopoverStyle(computePopoverStyle(rect));
+    };
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [showDetails, hasDetails, popoverPlacement]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -96,8 +151,11 @@ export function BaseNode({
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => {
+      onMouseEnter={(e) => {
         setIsHovered(true);
+        const element = e.currentTarget;
+        const rect = element.getBoundingClientRect();
+        setPopoverStyle(computePopoverStyle(rect));
         setNodes((nodes) =>
           nodes.map((node) =>
             node.id === id ? { ...node, zIndex: 1000 } : node
@@ -106,6 +164,7 @@ export function BaseNode({
       }}
       onMouseLeave={() => {
         setIsHovered(false);
+        setPopoverStyle(null);
         setNodes((nodes) =>
           nodes.map((node) =>
             node.id === id ? { ...node, zIndex: 0 } : node
@@ -149,22 +208,15 @@ export function BaseNode({
       </div>
 
       {/* Expandable details panel */}
-      {showDetails && hasDetails && popoverRect && typeof document !== 'undefined' && createPortal(
+      {showDetails && hasDetails && popoverStyle && typeof document !== 'undefined' && createPortal(
         <div
           className={`
             details-popover
             bg-white border border-gray-200 rounded shadow-lg px-2 py-1.5
             min-w-[140px] max-w-[220px]
-            animate-in fade-in slide-in-from-top-1 duration-200
+            ${popoverPlacement === 'side' ? 'animate-[fade-in_0.2s_ease-out]' : 'animate-in'}
           `}
-          style={{
-            position: 'fixed',
-            left: popoverRect.left + popoverRect.width / 2,
-            top: popoverRect.bottom + 4,
-            transform: 'translateX(-50%)',
-            zIndex: 20000,
-            pointerEvents: 'none',
-          }}
+          style={popoverStyle}
         >
           {/* Always show full component name for clipped labels */}
           <div className="mb-1 pb-1 border-b border-gray-100">
