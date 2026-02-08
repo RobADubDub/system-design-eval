@@ -96,6 +96,7 @@ interface BaseNodeData {
   label: string;
   description?: string; // What this component does / its role in the system
   notes?: string;       // Additional notes, constraints, considerations
+  popoverPlacement?: 'default' | 'side';
   [key: string]: unknown;
 }
 
@@ -289,4 +290,3 @@ export interface FlowStep {
   description: string;
   duration: number; // milliseconds
 }
-

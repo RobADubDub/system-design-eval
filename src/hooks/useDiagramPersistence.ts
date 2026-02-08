@@ -33,6 +33,7 @@ interface UseDiagramPersistenceOptions {
   specifications: NodeSpecification[];
   setSpecifications: React.Dispatch<React.SetStateAction<NodeSpecification[]>>;
   onLoad?: () => void;
+  onStateReset?: () => void;
 }
 
 interface UseDiagramPersistenceReturn {
@@ -65,6 +66,7 @@ export function useDiagramPersistence({
   specifications,
   setSpecifications,
   onLoad,
+  onStateReset,
 }: UseDiagramPersistenceOptions): UseDiagramPersistenceReturn {
   const [currentDiagram, setCurrentDiagram] = useState<SavedDiagram | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -175,9 +177,10 @@ export function useDiagramPersistence({
       onNodeIdReset(maxId);
 
       // Notify that diagram was loaded
+      onStateReset?.();
       onLoad?.();
     },
-    [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications, onLoad]
+    [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications, onLoad, onStateReset]
   );
 
   // Load with file picker
@@ -235,7 +238,8 @@ export function useDiagramPersistence({
       setNotesAssist(createDefaultNotesAssistState(DEFAULT_NOTES_SECTIONS.map(s => s.id)));
     }
     onNodeIdReset(0);
-  }, [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications]);
+    onStateReset?.();
+  }, [setNodes, setEdges, onNodeIdReset, setNotes, setNotesAssist, setSpecifications, onStateReset]);
 
   // Drag and drop handlers for file loading
   const handleDragOver = useCallback((e: DragEvent) => {

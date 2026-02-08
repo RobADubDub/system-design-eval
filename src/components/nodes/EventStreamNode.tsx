@@ -28,6 +28,7 @@ export function EventStreamNode({ id, data, selected }: NodeProps) {
       selected={selected}
       description={nodeData.description}
       notes={nodeData.notes}
+      popoverPlacement={nodeData.popoverPlacement}
       isActive={nodeData.isActive}
     >
       {hasDetails && (

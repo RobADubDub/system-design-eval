@@ -303,9 +303,26 @@ function HomeContent() {
   // Flow simulation active states
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
+  // Focus node ID state - when set, DiagramCanvas will center on this node
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
   // Canvas ref for imperative methods
   const canvasRef = useRef<DiagramCanvasHandle>(null);
+
+  const handleTransientStateReset = useCallback(() => {
+    setRightPanel('none');
+    setSelectedNodes([]);
+    setSelectedEdges([]);
+    setFocusNodeId(null);
+    setActiveNodeId(null);
+    setActiveEdgeId(null);
+    setAiChatMode('design');
+    setAiNotesContext(undefined);
+    setAiInitialMessage(undefined);
+    setAiExchanges([]);
+    setBenchmarkCompareView(null);
+    setIsFullCompareOpen(false);
+  }, []);
 
   // Persistence
   const persistence = useDiagramPersistence({
@@ -318,6 +335,7 @@ function HomeContent() {
     setNotes,
     specifications,
     setSpecifications,
+    onStateReset: handleTransientStateReset,
     onLoad: () => {
       // Center view on loaded content after a brief delay for rendering
       setTimeout(() => canvasRef.current?.centerView(), 50);
@@ -388,9 +406,6 @@ function HomeContent() {
       setRightPanel('ai');
     }
   }, [nodes, selectedNodes]);
-
-  // Focus node ID state - when set, DiagramCanvas will center on this node
-  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
   // Handle focusing a node from AI panel
   const handleFocusNode = useCallback((nodeId: string) => {
