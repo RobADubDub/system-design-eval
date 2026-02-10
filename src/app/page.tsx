@@ -269,36 +269,47 @@ function HomeContent() {
         const sectionId = DEFAULT_NOTES_SECTIONS[sectionIndex]?.id;
 
         if (sectionId) {
-          // Switch to notes tab and expand panel if collapsed
-          setLeftPanelTab('notes');
-          if (leftPanelCollapsed) {
-            setLeftPanelCollapsed(false);
-          }
+          const section = notes.sections.find(s => s.id === sectionId);
+          const isCurrentlyVisible = leftPanelTab === 'notes' && !leftPanelCollapsed && section && !section.collapsed;
 
-          // Expand the section if collapsed
-          setNotes(prev => ({
-            sections: prev.sections.map(s =>
-              s.id === sectionId ? { ...s, collapsed: false } : s
-            ),
-          }));
-
-          // Focus on the section after a short delay for DOM update
-          setTimeout(() => {
-            const ref = sectionRefs.get(sectionId);
-            if (ref?.current) {
-              ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              // Find and focus the textarea within the section
-              const textarea = ref.current.querySelector('textarea');
-              textarea?.focus();
+          if (isCurrentlyVisible) {
+            // Toggle closed
+            setNotes(prev => ({
+              sections: prev.sections.map(s =>
+                s.id === sectionId ? { ...s, collapsed: true } : s
+              ),
+            }));
+          } else {
+            // Switch to notes tab and expand panel if needed
+            setLeftPanelTab('notes');
+            if (leftPanelCollapsed) {
+              setLeftPanelCollapsed(false);
             }
-          }, 100);
+
+            // Expand the section
+            setNotes(prev => ({
+              sections: prev.sections.map(s =>
+                s.id === sectionId ? { ...s, collapsed: false } : s
+              ),
+            }));
+
+            // Focus on the section after a short delay for DOM update
+            setTimeout(() => {
+              const ref = sectionRefs.get(sectionId);
+              if (ref?.current) {
+                ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                const textarea = ref.current.querySelector('textarea');
+                textarea?.focus();
+              }
+            }, 100);
+          }
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [leftPanelCollapsed]);
+  }, [leftPanelCollapsed, leftPanelTab, notes]);
 
   // Flow simulation active states
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);

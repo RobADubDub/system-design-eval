@@ -92,6 +92,13 @@ function NotesSectionComponent({
 
       {!section.collapsed && (
         <div className="px-3 pb-3">
+          {/* Template selector for Problem section */}
+          {isProblemSection && onSelectTemplate && (
+            <div className="mb-2">
+              <TemplateSelector onSelectTemplate={onSelectTemplate} />
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             value={section.content}
@@ -103,13 +110,6 @@ function NotesSectionComponent({
             className="w-full min-h-[80px] px-2 py-1.5 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             style={{ overflow: 'hidden' }}
           />
-
-          {/* Template selector for Problem section */}
-          {isProblemSection && onSelectTemplate && (
-            <div className="mt-2">
-              <TemplateSelector onSelectTemplate={onSelectTemplate} />
-            </div>
-          )}
 
           {/* AI Assist actions for non-Problem sections */}
           {!isProblemSection && (

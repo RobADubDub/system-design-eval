@@ -148,6 +148,18 @@ export const PROBLEM_TEMPLATES: ProblemTemplate[] = [
     category: 'Search',
     problemStatement: 'Design a web search engine like Google.',
   },
+  {
+    id: 'search-autocomplete',
+    name: 'Search Autocomplete',
+    category: 'Search',
+    problemStatement: 'Design a typeahead / search autocomplete system that suggests queries in real time as the user types, like Google Search suggestions.',
+  },
+  {
+    id: 'feature-flag-system',
+    name: 'Feature Flag System',
+    category: 'Infrastructure',
+    problemStatement: 'Design a feature flag system like LaunchDarkly that allows teams to toggle features on or off, perform percentage rollouts, and target specific user segments across thousands of services.',
+  },
 ];
 
 // Get templates grouped by category
