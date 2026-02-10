@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { CloudNode, CloudNodeType, CloudNodeData } from '@/types/diagram';
 import { getComponentLabel, getComponentColor, getComponentProperties } from '@/lib/components/registry';
+import { COMPONENT_REFERENCE } from '@/lib/components/reference';
 
 interface NodePropertiesPanelProps {
   node: CloudNode | null;
@@ -10,6 +12,8 @@ interface NodePropertiesPanelProps {
 }
 
 export function NodePropertiesPanel({ node, onUpdateNode, onClose }: NodePropertiesPanelProps) {
+  const [referenceOpen, setReferenceOpen] = useState(false);
+
   if (!node) {
     return (
       <div className="flex-1 p-4 flex flex-col items-center justify-center text-gray-400">
@@ -143,6 +147,48 @@ export function NodePropertiesPanel({ node, onUpdateNode, onClose }: NodePropert
             className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
           />
         </div>
+
+        {/* Reference */}
+        {COMPONENT_REFERENCE[nodeType] && (
+          <div className="pt-2 border-t border-gray-100">
+            <button
+              onClick={() => setReferenceOpen((prev) => !prev)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                Reference
+              </span>
+              <svg
+                className={`w-3.5 h-3.5 text-gray-400 transition-transform ${referenceOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {referenceOpen && (
+              <div className="mt-2 space-y-2">
+                {COMPONENT_REFERENCE[nodeType]!.keyConcepts.map((concept) => (
+                  <div key={concept.term}>
+                    <span className="text-xs font-semibold text-gray-700">{concept.term}</span>
+                    <p className="text-xs text-gray-500 leading-relaxed">{concept.description}</p>
+                  </div>
+                ))}
+                {COMPONENT_REFERENCE[nodeType]!.learnMoreUrl && (
+                  <a
+                    href={COMPONENT_REFERENCE[nodeType]!.learnMoreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-xs text-blue-500 hover:text-blue-600 mt-1"
+                  >
+                    Learn more &rarr;
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer hint */}
