@@ -383,7 +383,7 @@ export async function POST(req: Request) {
       return jsonResponse({ error: 'Invalid benchmark request payload' }, 400);
     }
 
-    if (request.diagram.nodes.length < 3) {
+    if (mode === 'compare' && request.diagram.nodes.length < 3) {
       return jsonResponse({ error: 'At least 3 nodes are required for benchmark comparison.' }, 400);
     }
 

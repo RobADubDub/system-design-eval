@@ -92,11 +92,12 @@ const MODE_CONFIGS: Record<AIChatMode, ModeConfig> = {
     showQuickActions: true,
     showContextIndicator: true,
     quickActions: [
+      { label: 'Fault modes', base: 'What are the unique fault modes and operational pitfalls I need to be aware of for each component? Go beyond generic failures — focus on technology-specific issues like hot partitions, disk pressure from retention, consumer lag cascades, connection pool exhaustion, split-brain scenarios, etc.', focused: 'What are the unique fault modes and operational pitfalls for {components}? Go beyond generic failures — focus on technology-specific issues (e.g., hot partitions in Kafka, cache stampedes in Redis, connection pool exhaustion in PostgreSQL). What can go wrong that is specific to this technology and how should I design around it?' },
       { label: 'Find bottlenecks', base: 'What are the potential bottlenecks', focused: 'What are the potential bottlenecks for {components}' },
       { label: 'Suggest improvements', base: 'What improvements would you suggest', focused: 'What improvements would you suggest for {components}' },
       { label: 'Check redundancy', base: 'Are there any single points of failure', focused: 'Are there any single points of failure related to {components}' },
       { label: 'Security review', base: 'What security concerns should I consider', focused: 'What security concerns should I consider for {components}' },
-      { label: 'What technology?', base: 'What specific technologies (e.g., databases, caches, message brokers) would you recommend for each component and why? Consider my requirements and the trade-offs vs alternatives', focused: 'What specific technology would you recommend for {components}? Consider my requirements, expected access patterns, and scale. Explain the trade-offs vs alternatives and when I would pick one over the other' },
+      { label: 'What technology', base: 'What specific technologies (e.g., databases, caches, message brokers) would you recommend for each component and why? Consider my requirements and the trade-offs vs alternatives', focused: 'What specific technology would you recommend for {components}? Consider my requirements, expected access patterns, and scale. Explain the trade-offs vs alternatives and when I would pick one over the other' },
     ],
     emptyState: {
       primary: 'Ask questions about your system design',

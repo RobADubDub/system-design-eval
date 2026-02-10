@@ -73,7 +73,9 @@ export function BenchmarkPanel({
     [notes.sections]
   );
 
-  const canRun = problemStatement.length > 0 && nodes.length >= 3;
+  const canGenerateReference = problemStatement.length > 0;
+  const canRunComparison = canGenerateReference && nodes.length >= 3;
+  const needsMoreNodesForComparison = nodes.length < 3;
   const hasReference = !!referenceData?.referenceGraph?.nodes?.length;
   const comparePayload = useMemo(
     () => ({
@@ -114,7 +116,7 @@ export function BenchmarkPanel({
   };
 
   const generateReferenceDesign = async () => {
-    if (!canRun || isGeneratingReference) return;
+    if (!canGenerateReference || isGeneratingReference) return;
     setIsGeneratingReference(true);
     setRunError(null);
     try {
@@ -131,7 +133,7 @@ export function BenchmarkPanel({
   };
 
   const runComparison = async () => {
-    if (!canRun || !referenceData || isComparing) return;
+    if (!canRunComparison || !referenceData || isComparing) return;
     setIsComparing(true);
     setRunError(null);
     try {
@@ -203,12 +205,6 @@ export function BenchmarkPanel({
           </p>
         )}
 
-        {nodes.length < 3 && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
-            Add at least 3 nodes so architecture comparison has enough detail.
-          </p>
-        )}
-
         <div className="mt-3 grid grid-cols-2 gap-2">
           <label className="text-xs text-gray-500">
             Profile
@@ -250,19 +246,29 @@ export function BenchmarkPanel({
           <div className="flex items-center gap-2">
             <button
               onClick={generateReferenceDesign}
-              disabled={!canRun || isGeneratingReference}
+              disabled={!canGenerateReference || isGeneratingReference}
               className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50 transition-colors"
             >
               {isGeneratingReference ? 'Generating...' : hasReference ? 'Regenerate reference' : '1) Generate reference design'}
             </button>
 
-            <button
-              onClick={runComparison}
-              disabled={!canRun || !hasReference || isComparing}
-              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              {isComparing ? 'Comparing...' : '2) Run comparison'}
-            </button>
+            <div className="relative group">
+              <button
+                onClick={runComparison}
+                disabled={!canRunComparison || !hasReference || isComparing}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isComparing ? 'Comparing...' : '2) Run comparison'}
+              </button>
+              {needsMoreNodesForComparison && (
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 rounded bg-gray-900 text-white text-[11px] whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-20"
+                  role="tooltip"
+                >
+                  Add at least 3 nodes to run comparison.
+                </div>
+              )}
+            </div>
           </div>
 
           {hasReference && (
