@@ -60,6 +60,33 @@ function NotesSectionComponent({
     }
   };
 
+  const handleTemplateSelect = useCallback((template: ProblemTemplate) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      onSelectTemplate?.(template);
+      return;
+    }
+
+    // Apply through the textarea editing APIs so browser-native undo (Ctrl+Z)
+    // can revert the template insertion just like normal typing.
+    textarea.focus();
+    textarea.setSelectionRange(0, textarea.value.length);
+
+    let applied = false;
+    try {
+      applied = typeof document !== 'undefined' && document.execCommand('insertText', false, template.problemStatement);
+    } catch {
+      applied = false;
+    }
+
+    if (!applied) {
+      textarea.setRangeText(template.problemStatement, 0, textarea.value.length, 'end');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    adjustHeight();
+  }, [adjustHeight, onSelectTemplate]);
+
   return (
     <div ref={sectionRef} className="border-b border-gray-100 last:border-b-0">
       <button
@@ -95,7 +122,7 @@ function NotesSectionComponent({
           {/* Template selector for Problem section */}
           {isProblemSection && onSelectTemplate && (
             <div className="mb-2">
-              <TemplateSelector onSelectTemplate={onSelectTemplate} />
+              <TemplateSelector onSelectTemplate={handleTemplateSelect} />
             </div>
           )}
 
