@@ -36,12 +36,30 @@ function NotesSectionComponent({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isProblemSection = section.id === 'problem';
 
-  // Auto-resize textarea
+  // Auto-resize textarea while preserving parent scroll position.
+  // Setting height='auto' momentarily collapses the textarea, which can
+  // cause the browser to re-scroll the container. We snapshot and restore
+  // the scrollTop of every scrollable ancestor to prevent the jump.
   const adjustHeight = useCallback(() => {
     const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
+    if (!textarea) return;
+
+    // Snapshot scroll positions of all scrollable ancestors
+    const scrollableAncestors: { el: Element; top: number }[] = [];
+    let ancestor = textarea.parentElement;
+    while (ancestor) {
+      if (ancestor.scrollHeight > ancestor.clientHeight) {
+        scrollableAncestors.push({ el: ancestor, top: ancestor.scrollTop });
+      }
+      ancestor = ancestor.parentElement;
+    }
+
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(80, textarea.scrollHeight)}px`;
+
+    // Restore scroll positions
+    for (const { el, top } of scrollableAncestors) {
+      el.scrollTop = top;
     }
   }, []);
 

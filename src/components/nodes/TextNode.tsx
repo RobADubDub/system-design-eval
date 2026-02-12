@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, MouseEvent, KeyboardEvent } from 'react';
-import { NodeProps, useReactFlow } from '@xyflow/react';
+import { NodeProps, NodeResizer, useReactFlow } from '@xyflow/react';
 import { TextData, TextFontSize, SpecItem } from '@/types/diagram';
 import { SpecificationEditor } from '../specifications/SpecificationEditor';
 
@@ -59,6 +59,7 @@ export function TextNode({ id, data, selected }: NodeProps) {
   }, [externalItems]);
 
   const collapsed = nodeData.collapsed ?? false;
+  const isResized = nodeData.resized ?? false;
   const fontSize: TextFontSize = nodeData.fontSize ?? 'md';
   const sizeClass = TEXT_SIZE_CLASS[fontSize];
 
@@ -121,6 +122,16 @@ export function TextNode({ id, data, selected }: NodeProps) {
     );
   }, [id, setNodes]);
 
+  const handleResizeStart = useCallback(() => {
+    if (!isResized) {
+      setNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, resized: true } } : node
+        )
+      );
+    }
+  }, [id, isResized, setNodes]);
+
   const handleLabelDoubleClick = useCallback((e: MouseEvent) => {
     e.stopPropagation();
     setIsEditingLabel(true);
@@ -172,10 +183,19 @@ export function TextNode({ id, data, selected }: NodeProps) {
   return (
     <div
       ref={boxRef}
-      className={`bg-white border border-gray-200 rounded-lg shadow-sm min-w-[180px] max-w-[300px] ${
+      className={`bg-white border border-gray-200 rounded-lg shadow-sm w-full ${isResized ? 'h-full' : ''} min-w-[180px] flex flex-col ${
         isEditing ? 'ring-2 ring-blue-400' : selected ? 'ring-2 ring-blue-400 ring-offset-2' : 'hover:border-gray-300'
       }`}
     >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={180}
+        minHeight={60}
+        lineClassName="!border-blue-400"
+        handleClassName="!w-2.5 !h-2.5 !bg-blue-400 !border-blue-400"
+        lineStyle={{ borderWidth: 2 }}
+        onResizeStart={handleResizeStart}
+      />
       {/* Header with label and collapse toggle */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-gray-100 bg-gray-50 rounded-t-lg">
         {isEditingLabel ? (
@@ -236,7 +256,7 @@ export function TextNode({ id, data, selected }: NodeProps) {
 
       {/* Content - click to edit */}
       <div
-        className={`p-2 ${isEditing ? '' : 'cursor-pointer hover:bg-gray-50 rounded-b-lg'}`}
+        className={`p-2 ${isResized ? 'flex-1 overflow-y-auto' : ''} ${isEditing ? '' : 'cursor-pointer hover:bg-gray-50 rounded-b-lg'}`}
         onClick={isEditing ? undefined : handleContentClick}
       >
         {isEditing ? (

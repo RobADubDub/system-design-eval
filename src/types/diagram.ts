@@ -186,6 +186,7 @@ export interface TextData extends BaseNodeData {
   items?: SpecItem[];
   collapsed?: boolean;
   fontSize?: TextFontSize;
+  resized?: boolean;
 }
 
 // Union type for all node data
